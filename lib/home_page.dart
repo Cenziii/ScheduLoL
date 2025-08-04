@@ -1,16 +1,14 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:grouped_list/grouped_list.dart';
-import 'package:intl/intl.dart';
 import 'package:lol_competitive/classes/league.dart';
 import 'package:lol_competitive/classes/match.dart';
-import 'package:lol_competitive/classes/serie.dart';
 import 'package:lol_competitive/classes/tournament.dart';
-import 'package:lol_competitive/components/card_match.dart';
-import 'package:lol_competitive/league_page.dart';
+import 'package:lol_competitive/components/match_week_view.dart';
+import 'package:lol_competitive/leagues_page.dart';
 import 'package:lol_competitive/services/panda.dart';
 import 'package:responsive_builder/responsive_builder.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -24,13 +22,12 @@ class _HomePageState extends State<HomePage> {
   bool _isLoading = true;
   bool _isLoadingSchedule = false;
   List<League> _leagues = [];
+  List<int> _preferredLeagues = [];
   late CarouselController _carouselController;
   late League _currentLeague;
-  late List<Match> _pastMatches = [];
-  late List<Match> _runningMatches = [];
-  late List<Match> _upcomingMatches = [];
   late List<Match> _allMatches = [];
   int _selectedIndex = 0;
+  int _selectedLeagueId = 0;
   late final PageController _pageController;
   final ScrollController _scrollController = ScrollController();
 
@@ -46,9 +43,6 @@ class _HomePageState extends State<HomePage> {
 
   void _init() async {
     await loadHomeData();
-    setState(() {
-      _isLoading = false;
-    });
   }
 
   @override
@@ -60,143 +54,113 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> loadHomeData() async {
     await loadTournaments();
+    if (_leagues.isNotEmpty) {
+      await currentLeagueSchedule(_leagues.first);
+    }
   }
 
   Future<void> loadTournaments() async {
     List<League>? leagues = await PandaService().getLeagues();
 
-    if (leagues != null) {
-      _leagues = leagues;
+    if (leagues != null && leagues.isNotEmpty) {
+      setState(() {
+        _leagues = leagues;
+
+        orderPreferredLeagueList(_leagues);
+
+        _currentLeague = leagues[0];
+        _isLoading = false;
+        _error = false;
+      });
     } else {
       setState(() {
         _error = true;
+        _isLoading = false;
       });
     }
-    setState(() {
-      if (_leagues.isNotEmpty) {
-        _currentLeague = _leagues[0];
+  }
+
+  void orderPreferredLeagueList(List<League> league) async {
+    final prefs = await SharedPreferences.getInstance();
+    List<League> newOrderedLeagues = [];
+    if (prefs.getStringList('league_ids') != null &&
+        prefs.getStringList('league_ids')!.isNotEmpty) {
+      for (int i = 0; i < prefs.getStringList('league_ids')!.length; i++) {
+        String saved_id = prefs.getStringList('league_ids')![i];
+        print(saved_id);
+        bool isInList = _leagues.any((test) => test.id != int.parse(saved_id));
+        if (isInList) {
+          newOrderedLeagues.add(
+            _leagues.firstWhere((test) => test.id == int.parse(saved_id)),
+          );
+        }
+      }
+      newOrderedLeagues = List.from(newOrderedLeagues)..addAll(_leagues);
+      newOrderedLeagues = newOrderedLeagues.toSet().toList();
+      _leagues = List.from(newOrderedLeagues);
+
+      _preferredLeagues = List.from([
+        for (var i in prefs.getStringList('league_ids')!) int.parse(i),
+      ]);
+    }
+  }
+
+  void scrollToSelectedLeague() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+
+      final index = _leagues.indexWhere(
+        (league) => league.id == _selectedLeagueId,
+      );
+      if (index != -1) {
+        _scrollController.animateTo(
+          index * 100.0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
       }
     });
-  }
-
-  void clearMatches() {
-    _pastMatches.clear();
-    _runningMatches.clear();
-    _upcomingMatches.clear();
-    _allMatches.clear();
-  }
-
-  double getScrollOffsetForGroup(
-    int groupIndex,
-    List<List<Match>> groupedMatches,
-  ) {
-    const double groupHeaderHeight = 40;
-    const double cardHeight = 100;
-
-    double offset = 0;
-    for (int i = 0; i < groupIndex; i++) {
-      final group = groupedMatches[i];
-      offset += groupHeaderHeight + (group.length * cardHeight);
-    }
-    return offset;
   }
 
   Future<void> currentLeagueSchedule(League lg) async {
     setState(() {
       _isLoadingSchedule = true;
     });
-    clearMatches();
-    Tournament? tournament = await PandaService().getCurrentTournament(lg.id);
+
+    _allMatches.clear();
+
+    List<Tournament>? tournament = await PandaService().getCurrentTournament(
+      lg.id,
+    );
 
     if (tournament != null) {
-      _pastMatches = (await PandaService().getMatches('past', tournament.id!));
-      _runningMatches = (await PandaService().getMatches(
-        'running',
-        tournament.id!,
-      ));
-      _upcomingMatches = (await PandaService().getMatches(
-        'upcoming',
-        tournament.id!,
-      ));
+      for (int i = 0; i < tournament.length; i++) {
+        final past = await PandaService().getMatches('past', tournament[i].id!);
+        final running = await PandaService().getMatches(
+          'running',
+          tournament[i].id!,
+        );
+        final upcoming = await PandaService().getMatches(
+          'upcoming',
+          tournament[i].id!,
+        );
+        _allMatches = [
+          ..._allMatches,
+          ...past,
+          ...running,
+          ...upcoming,
+        ].where((m) => m.beginAt != null).toList();
+      }
     }
-    _allMatches = List.from(_allMatches)
-      ..addAll(_pastMatches)
-      ..addAll(_runningMatches)
-      ..addAll(_upcomingMatches);
 
-    _allMatches.sort((a, b) => a.beginAt!.compareTo(b.beginAt!));
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final index = indexOfCurrentWeek(_allMatches);
-      // Approssimiamo l'altezza delle card (modifica se necessario)
-      const double cardHeight = 100;
-      _scrollController.jumpTo(index * cardHeight);
-    });
     setState(() {
       _isLoadingSchedule = false;
     });
   }
 
-  int indexOfCurrentWeek(List<Match> matches) {
-    final now = DateTime.now();
-    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-    final endOfWeek = startOfWeek.add(const Duration(days: 6));
-
-    for (int i = 0; i < matches.length; i++) {
-      final matchDate = matches[i].beginAt;
-      if (!matchDate!.isBefore(startOfWeek) && !matchDate.isAfter(endOfWeek)) {
-        return i;
-      }
-    }
-
-    return 0; // fallback
-  }
-
-  String getMatchGroup(Match match) {
-    final now = DateTime.now().toUtc();
-    final begin = match.beginAt;
-
-    if (match.status == 'running') return 'Ora';
-    if (begin!.isAfter(now)) return 'Prossime';
-    return 'Passate';
-  }
-
-  String getWeekRange(DateTime date) {
-    final now = DateTime.now();
-    final startOfWeek = date.subtract(
-      Duration(days: date.weekday - 1),
-    ); // lunedì
-    final endOfWeek = startOfWeek.add(const Duration(days: 6)); // domenica
-
-    final format = (DateTime d) =>
-        '${d.day} ${_monthName(d.month)}'; // es: 29 luglio
-
-    return '${format(startOfWeek)} – ${format(endOfWeek)}';
-  }
-
-  String _monthName(int month) {
-    const months = [
-      '',
-      'gennaio',
-      'febbraio',
-      'marzo',
-      'aprile',
-      'maggio',
-      'giugno',
-      'luglio',
-      'agosto',
-      'settembre',
-      'ottobre',
-      'novembre',
-      'dicembre',
-    ];
-    return months[month];
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final font = GoogleFonts.pixelifySansTextTheme;
 
     if (!_error && !_isLoading) {
       return ResponsiveBuilder(
@@ -222,102 +186,187 @@ class _HomePageState extends State<HomePage> {
                 elevation: 1.0,
                 centerTitle: true,
                 iconTheme: IconThemeData(color: theme.colorScheme.onPrimary),
-              ),
-              endDrawer: Drawer(
-                backgroundColor: theme.colorScheme.surface,
-                child: ListView(
-                  padding: EdgeInsets.zero,
-                  children: [
-                    DrawerHeader(
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primaryContainer,
-                      ),
-                      child: Text(
-                        'Header',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          color: theme.colorScheme.onPrimaryContainer,
-                        ),
-                      ),
-                    ),
-                    ...['Leagues', 'Teams', 'Schedule', 'Preferred'].map(
-                      (title) => ListTile(
-                        title: Text(
-                          title,
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            color: theme.colorScheme.onSurface,
+                leading: Builder(
+                  builder: (BuildContext context) {
+                    return IconButton(
+                      icon: const Icon(Icons.settings),
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const LeaguesPage(),
                           ),
-                        ),
-                        onTap: () {},
-                      ),
-                    ),
-                  ],
+                        );
+                      },
+                    );
+                  },
                 ),
               ),
+
               body: Column(
                 children: [
+                  SizedBox(height: 5),
                   SizedBox(
-                    height: 90,
+                    height: 105,
                     child: ListView.builder(
+                      shrinkWrap: true,
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       itemCount: _leagues.length,
                       itemBuilder: (context, index) {
                         final league = _leagues[index];
-                        final isSelected = index == _selectedIndex;
+                        final id = league.id;
+                        final isSelected = id == _selectedLeagueId;
 
+                        final isFavorite = _preferredLeagues.any(
+                          (test) => test == _leagues[index].id,
+                        );
                         return GestureDetector(
                           onTap: () {
                             setState(() {
-                              _selectedIndex = index;
-                              /*_pageController.animateToPage(
-                                index,
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeInOut,
-                              );*/
-                              currentLeagueSchedule(_leagues[_selectedIndex]);
+                              _selectedLeagueId = id;
+
+                              League? leagueSelected;
+                              try {
+                                leagueSelected = _leagues.firstWhere(
+                                  (league) => league.id == _selectedLeagueId,
+                                );
+                              } catch (e) {
+                                leagueSelected = null;
+                              }
+                              if (leagueSelected != null) {
+                                currentLeagueSchedule(leagueSelected);
+                              }
+
+                              scrollToSelectedLeague();
                             });
                           },
+
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: isSelected
-                                          ? theme.colorScheme.primary
-                                          : Colors.transparent,
-                                      width: 3,
-                                    ),
-                                  ),
-                                  padding: const EdgeInsets.all(2),
-                                  child: ClipOval(
-                                    child: CachedNetworkImage(
-                                      imageUrl: league.imageUrl ?? '',
-                                      width: 55,
-                                      height: 55,
-                                      fit: BoxFit.cover,
-                                      placeholder: (_, __) =>
-                                          const CircularProgressIndicator(
-                                            strokeWidth: 2,
+                            padding: const EdgeInsets.symmetric(horizontal: 7),
+                            child: SizedBox(
+                              width: 80,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Stack(
+                                    alignment: Alignment.topRight,
+                                    children: [
+                                      Container(
+                                        width: 60,
+                                        height: 60,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: isSelected
+                                                ? Colors.red
+                                                : Colors.black,
+                                            width: 4,
                                           ),
-                                      errorWidget: (_, __, ___) =>
-                                          const Icon(Icons.error),
+                                        ),
+                                        padding: const EdgeInsets.all(2),
+                                        child: ClipOval(
+                                          child: CachedNetworkImage(
+                                            imageUrl: league.imageUrl ?? '',
+                                            width: 60,
+                                            height: 60,
+                                            fit: BoxFit.contain,
+                                            placeholder: (_, __) =>
+                                                const SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                      ),
+                                                ),
+                                            errorWidget: (_, __, ___) =>
+                                                const Icon(Icons.error),
+                                          ),
+                                        ),
+                                      ),
+                                      GestureDetector(
+                                        onTap: () async {
+                                          final prefs =
+                                              await SharedPreferences.getInstance();
+
+                                          _selectedLeagueId = id;
+
+                                          if (_preferredLeagues.contains(
+                                            _selectedLeagueId,
+                                          )) {
+                                            _preferredLeagues.remove(
+                                              _selectedLeagueId,
+                                            );
+                                          } else {
+                                            _preferredLeagues.add(
+                                              _selectedLeagueId,
+                                            );
+                                          }
+                                          // Solo fuori da setState
+                                          await prefs.setStringList(
+                                            'league_ids',
+                                            _preferredLeagues
+                                                .map((e) => '$e')
+                                                .toList(),
+                                          );
+
+                                          orderPreferredLeagueList(_leagues);
+                                          League? leagueSelected;
+                                          try {
+                                            leagueSelected = _leagues
+                                                .firstWhere(
+                                                  (league) =>
+                                                      league.id ==
+                                                      _selectedLeagueId,
+                                                );
+                                          } catch (e) {
+                                            leagueSelected = null;
+                                          }
+                                          setState(() {});
+
+                                          if (leagueSelected != null) {
+                                            currentLeagueSchedule(
+                                              leagueSelected,
+                                            );
+                                          }
+
+                                          WidgetsBinding.instance
+                                              .addPostFrameCallback((_) {
+                                                //scrollToSelectedLeague();
+                                              });
+                                        },
+                                        child: (isFavorite)
+                                            ? const Icon(
+                                                Icons.star,
+                                                color: Colors.yellow,
+                                                size: 18,
+                                              )
+                                            : const Icon(
+                                                Icons.star_border,
+                                                color: Colors.grey,
+                                                size: 18,
+                                              ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  SizedBox(
+                                    height: 40,
+                                    child: Text(
+                                      league.name ?? '',
+                                      textAlign: TextAlign.center,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.labelMedium
+                                          ?.copyWith(
+                                            fontWeight: isSelected
+                                                ? FontWeight.bold
+                                                : FontWeight.normal,
+                                          ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  league.name ?? '',
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    fontWeight: isSelected
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                  ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         );
@@ -325,52 +374,12 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
 
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 2),
                   // Lista unica scrollabile
                   Expanded(
                     child: _isLoadingSchedule
                         ? const Center(child: CircularProgressIndicator())
-                        : GroupedListView<Match, DateTime>(
-                            elements: _allMatches,
-                            groupComparator: (a, b) => a.compareTo(b),
-                            groupBy: (match) {
-                              final date = match.beginAt;
-                              return DateTime(
-                                date!.year,
-                                date!.month,
-                                date!.day - (date!.weekday - 1),
-                              );
-                            },
-                            groupSeparatorBuilder: (DateTime group) {
-                              final end = group.add(const Duration(days: 6));
-                              final formatter = DateFormat(
-                                'dd MMM',
-                              ); // puoi usare anche intl locale
-
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 8,
-                                  horizontal: 16,
-                                ),
-                                child: Text(
-                                  '${formatter.format(group)} - ${formatter.format(end)}',
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              );
-                            },
-
-                            itemBuilder: (context, match) =>
-                                CardMatch(match: match),
-                            itemComparator: (a, b) =>
-                                a.beginAt!.compareTo(b.beginAt!),
-                            useStickyGroupSeparators: false,
-                            floatingHeader: false,
-                            order: GroupedListOrder.ASC,
-                            controller: _scrollController,
-                          ),
+                        : MatchWeekView(allMatches: _allMatches),
                   ),
                 ],
               ),

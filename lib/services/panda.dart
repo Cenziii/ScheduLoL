@@ -192,7 +192,7 @@ class PandaService {
     }
   }
 
-  Future<Tournament?> getCurrentTournament(int idLeague) async {
+  Future<List<Tournament>?> getCurrentTournament(int idLeague) async {
     final hasConnection = await checkConnection();
     if (!hasConnection) {
       debugPrint('No network connection');
@@ -224,11 +224,13 @@ class PandaService {
           Serie serie = serieList.first;
 
           List<Tournament> tournaments = serie.tournaments;
-          var current_tournament = tournaments.firstWhere(
-            (element) =>
-                element.beginAt!.isBefore(DateTime.now()) &&
-                element.endAt!.isAfter(DateTime.now()),
-          );
+          var current_tournament = tournaments
+              .where(
+                (element) =>
+                    element.beginAt!.isBefore(DateTime.now()) &&
+                    element.endAt!.isAfter(DateTime.now()),
+              )
+              .toList();
           return current_tournament;
         } else {
           return null;
@@ -270,7 +272,6 @@ class PandaService {
     final url = Uri.parse(
       '${baseUrl}matches/$period?filter[tournament_id]=$idTournament',
     );
-
     try {
       final response = await http
           .get(

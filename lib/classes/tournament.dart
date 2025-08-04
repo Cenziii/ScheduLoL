@@ -159,14 +159,14 @@ class Tournament {
     "id": id,
     "name": name,
     "type": type,
-    "matches": matches.map((x) => x?.toJson()).toList(),
+    "matches": matches.map((x) => x.toJson()).toList(),
     "country": country,
     "begin_at": beginAt?.toIso8601String(),
     "detailed_stats": detailedStats,
     "end_at": endAt?.toIso8601String(),
     "winner_id": winnerId,
     "winner_type": winnerType,
-    "teams": teams.map((x) => x?.toJson()).toList(),
+    "teams": teams.map((x) => x.toJson()).toList(),
     "slug": slug,
     "modified_at": modifiedAt?.toIso8601String(),
     "videogame": videogame?.toJson(),
@@ -180,7 +180,7 @@ class Tournament {
     "has_bracket": hasBracket,
     "region": region,
     "live_supported": liveSupported,
-    "expected_roster": expectedRoster.map((x) => x?.toJson()).toList(),
+    "expected_roster": expectedRoster.map((x) => x.toJson()).toList(),
   };
 
   @override

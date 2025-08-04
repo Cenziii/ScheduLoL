@@ -44,7 +44,7 @@ class Serie {
     int? year,
     DateTime? beginAt,
     DateTime? endAt,
-    dynamic? winnerId,
+    int? winnerId,
     String? winnerType,
     String? slug,
     DateTime? modifiedAt,

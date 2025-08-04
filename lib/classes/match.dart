@@ -3,6 +3,7 @@ import 'package:lol_competitive/classes/league.dart';
 import 'package:lol_competitive/classes/live.dart';
 import 'package:lol_competitive/classes/result.dart';
 import 'package:lol_competitive/classes/serie.dart';
+import 'package:lol_competitive/classes/streamlist.dart';
 import 'package:lol_competitive/classes/team.dart';
 import 'package:lol_competitive/classes/tournament.dart';
 
@@ -46,7 +47,7 @@ class Match {
   final DateTime? beginAt;
   final bool? detailedStats;
   final bool? draw;
-  final dynamic endAt;
+  final DateTime? endAt;
   final bool? forfeit;
   final dynamic gameAdvantage;
   final List<Game> games;
@@ -67,7 +68,7 @@ class Match {
   final int? serieId;
   final String? slug;
   final String? status;
-  final List<dynamic> streamsList;
+  final List<StreamsList> streamsList;
   final Tournament? tournament;
   final int? tournamentId;
   final Videogame? videogame;
@@ -81,7 +82,7 @@ class Match {
     DateTime? beginAt,
     bool? detailedStats,
     bool? draw,
-    dynamic? endAt,
+    DateTime? endAt,
     bool? forfeit,
     dynamic? gameAdvantage,
     List<Game>? games,
@@ -102,14 +103,14 @@ class Match {
     int? serieId,
     String? slug,
     String? status,
-    List<dynamic>? streamsList,
+    List<StreamsList>? streamsList,
     Tournament? tournament,
     int? tournamentId,
     Videogame? videogame,
     dynamic? videogameTitle,
     dynamic? videogameVersion,
     dynamic? winner,
-    dynamic? winnerId,
+    int? winnerId,
     String? winnerType,
   }) {
     return Match(
@@ -158,7 +159,7 @@ class Match {
       beginAt: DateTime.tryParse(json["begin_at"] ?? ""),
       detailedStats: json["detailed_stats"],
       draw: json["draw"],
-      endAt: json["end_at"],
+      endAt: DateTime.tryParse(json["end_at"] ?? ""),
       forfeit: json["forfeit"],
       gameAdvantage: json["game_advantage"],
       games: json["games"] == null
@@ -193,7 +194,9 @@ class Match {
       status: json["status"],
       streamsList: json["streams_list"] == null
           ? []
-          : List<dynamic>.from(json["streams_list"]!.map((x) => x)),
+          : List<StreamsList>.from(
+              json["streams_list"]!.map((x) => StreamsList.fromJson(x)),
+            ),
       tournament: json["tournament"] == null
           ? null
           : Tournament.fromJson(json["tournament"]),

@@ -32,10 +32,10 @@ class Game {
   final String? winnerType;
 
   Game copyWith({
-    dynamic? beginAt,
+    DateTime? beginAt,
     bool? complete,
     bool? detailedStats,
-    dynamic? endAt,
+    DateTime? endAt,
     bool? finished,
     bool? forfeit,
     int? id,

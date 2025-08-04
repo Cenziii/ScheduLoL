@@ -46,6 +46,11 @@ dependencies:
   fast_cached_network_image: ^1.3.3+5
   google_fonts: ^6.2.1
   grouped_list: ^6.0.0
+  smooth_page_indicator: ^1.2.1
+  collection: ^1.17.2
+  url_launcher: ^6.3.2
+  shared_preferences: ^2.5.3
+  animated_reorderable_list: ^1.3.0
 
 dev_dependencies:
   flutter_test:
@@ -72,7 +77,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - .env
-  #   - images/a_dot_ham.jpeg
+    - assets/icon/live-stream.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
