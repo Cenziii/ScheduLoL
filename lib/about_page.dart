@@ -4,7 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
 
-  final String _buyMeACoffeeUrl = "buymeacoffee.com/cenziii";
+  final String _buyMeACoffeeUrl = "https://buymeacoffee.com/cenziii";
 
   Future<void> _launchURL(String url) async {
     final Uri uri = Uri.parse(url);
@@ -42,21 +42,29 @@ class AboutPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const CircleAvatar(
-              radius: 50,
-              backgroundImage: AssetImage("assets/logo.png"), // opzionale
+            Image.asset(
+              "assets/icon/League_Displays_Icon.png",
+              width: 80,
+              height: 80,
+              fit: BoxFit.cover,
             ),
             const SizedBox(height: 16),
             const Text(
               "ScheduLoL",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              "This app is developed with ❤️ .\n"
+            const SizedBox(height: 20),
+            Text(
+              "This app is developed with ❤️ .\n\n"
               "If you want to support me, buy me a coffee!",
               textAlign: TextAlign.center,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontSize: 18,
+                fontWeight: FontWeight.normal,
+                color: theme.colorScheme.primary,
+              ),
             ),
+            const SizedBox(height: 20),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange,
@@ -70,7 +78,14 @@ class AboutPage extends StatelessWidget {
                 ),
               ),
               icon: const Icon(Icons.local_cafe),
-              label: const Text("Buy Me a Coffee"),
+              label: Text(
+                "Buy Me a Coffee",
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontSize: 23,
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
               onPressed: () => _launchURL(_buyMeACoffeeUrl),
             ),
             const SizedBox(height: 20),
