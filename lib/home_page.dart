@@ -1,11 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lol_competitive/about_page.dart';
 import 'package:lol_competitive/classes/league.dart';
 import 'package:lol_competitive/classes/match.dart';
 import 'package:lol_competitive/classes/tournament.dart';
 import 'package:lol_competitive/components/match_week_view.dart';
-import 'package:lol_competitive/leagues_page.dart';
 import 'package:lol_competitive/services/panda.dart';
 import 'package:responsive_builder/responsive_builder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -59,10 +58,27 @@ class _HomePageState extends State<HomePage> {
     List<League>? leagues = await PandaService().getLeagues();
 
     if (leagues != null && leagues.isNotEmpty) {
+      final prefs = await SharedPreferences.getInstance();
+      var strIds = prefs.getStringList('league_ids');
+
+      if (strIds != null && strIds.isNotEmpty) {
+        List<int> orderIds = strIds.map(int.parse).toList();
+
+        Map<int, int> positionMap = {
+          for (int i = 0; i < orderIds.length; i++) orderIds[i]: i,
+        };
+
+        leagues.sort(
+          (a, b) => (positionMap[a.id] ?? orderIds.length).compareTo(
+            positionMap[b.id] ?? orderIds.length,
+          ),
+        );
+      } else {
+        List<String> temp = [];
+        prefs.setStringList('league_ids', temp);
+      }
       setState(() {
         _leagues = leagues;
-
-        orderPreferredLeagueList(_leagues);
 
         _currentLeague = leagues[0];
         _isLoading = false;
@@ -76,36 +92,20 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void orderPreferredLeagueList(List<League> league) async {
-    final prefs = await SharedPreferences.getInstance();
-    List<League> newOrderedLeagues = [];
-    if (prefs.getStringList('league_ids') != null &&
-        prefs.getStringList('league_ids')!.isNotEmpty) {
-      for (int i = 0; i < prefs.getStringList('league_ids')!.length; i++) {
-        String saved_id = prefs.getStringList('league_ids')![i];
-        print(saved_id);
-        bool isInList = _leagues.any((test) => test.id != int.parse(saved_id));
-        if (isInList) {
-          newOrderedLeagues.add(
-            _leagues.firstWhere((test) => test.id == int.parse(saved_id)),
-          );
-        }
-      }
-      newOrderedLeagues = List.from(newOrderedLeagues)..addAll(_leagues);
-      newOrderedLeagues = newOrderedLeagues.toSet().toList();
-      _leagues = List.from(newOrderedLeagues);
-
-      _preferredLeagues = List.from([
-        for (var i in prefs.getStringList('league_ids')!) int.parse(i),
-      ]);
-    }
-  }
-
   void _onReorder(int oldIndex, int newIndex) {
     setState(() {
       final item = _leagues.removeAt(oldIndex);
       _leagues.insert(newIndex, item);
     });
+
+    storeInSharedPreferences();
+  }
+
+  Future<void> storeInSharedPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    List<String> orderIds = _leagues.map((item) => item.id.toString()).toList();
+    prefs.setStringList('league_ids', orderIds);
   }
 
   Future<void> currentLeagueSchedule(League lg) async {
@@ -250,20 +250,19 @@ class _HomePageState extends State<HomePage> {
                 elevation: 1.0,
                 centerTitle: true,
                 iconTheme: IconThemeData(color: theme.colorScheme.onPrimary),
-                leading: Builder(
-                  builder: (BuildContext context) {
-                    return IconButton(
-                      icon: const Icon(Icons.settings),
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => const LeaguesPage(),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
+                actions: [
+                  IconButton(
+                    icon: Icon(Icons.info, color: theme.colorScheme.surface),
+                    tooltip: 'About',
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const AboutPage(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
 
               body: Column(
