@@ -9,6 +9,7 @@ import 'package:lol_competitive/leagues_page.dart';
 import 'package:lol_competitive/services/panda.dart';
 import 'package:responsive_builder/responsive_builder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:reorderables/reorderables.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -23,7 +24,6 @@ class _HomePageState extends State<HomePage> {
   bool _isLoadingSchedule = false;
   List<League> _leagues = [];
   List<int> _preferredLeagues = [];
-  late CarouselController _carouselController;
   late League _currentLeague;
   late List<Match> _allMatches = [];
   int _selectedIndex = 0;
@@ -34,9 +34,6 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-
-    _carouselController = CarouselController();
-
     _init();
     _pageController = PageController(initialPage: _selectedIndex);
   }
@@ -48,7 +45,6 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     _pageController.dispose();
-    _carouselController.dispose();
     super.dispose();
   }
 
@@ -105,20 +101,10 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void scrollToSelectedLeague() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scrollController.hasClients) return;
-
-      final index = _leagues.indexWhere(
-        (league) => league.id == _selectedLeagueId,
-      );
-      if (index != -1) {
-        _scrollController.animateTo(
-          index * 100.0,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
-      }
+  void _onReorder(int oldIndex, int newIndex) {
+    setState(() {
+      final item = _leagues.removeAt(oldIndex);
+      _leagues.insert(newIndex, item);
     });
   }
 
@@ -161,6 +147,84 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    List<Widget> leagueWidgets = _leagues.map((league) {
+      final id = league.id;
+      final isSelected = id == _selectedLeagueId;
+
+      return GestureDetector(
+        key: ValueKey(id), // Necessario per ReorderableRow
+        onTap: () {
+          setState(() {
+            _selectedLeagueId = id;
+
+            League? leagueSelected;
+            try {
+              leagueSelected = _leagues.firstWhere(
+                (l) => l.id == _selectedLeagueId,
+              );
+            } catch (e) {
+              leagueSelected = null;
+            }
+            if (leagueSelected != null) {
+              currentLeagueSchedule(leagueSelected);
+            }
+          });
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 7),
+          child: SizedBox(
+            width: 80,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected ? Colors.red : Colors.black,
+                      width: 4,
+                    ),
+                  ),
+                  padding: const EdgeInsets.all(2),
+                  child: ClipOval(
+                    child: CachedNetworkImage(
+                      imageUrl: league.imageUrl ?? '',
+                      width: 60,
+                      height: 60,
+                      fit: BoxFit.contain,
+                      placeholder: (_, __) => const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      errorWidget: (_, __, ___) => const Icon(Icons.error),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                SizedBox(
+                  height: 40,
+                  child: Text(
+                    league.name ?? '',
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }).toList();
 
     if (!_error && !_isLoading) {
       return ResponsiveBuilder(
@@ -207,170 +271,11 @@ class _HomePageState extends State<HomePage> {
                   SizedBox(height: 5),
                   SizedBox(
                     height: 105,
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      itemCount: _leagues.length,
-                      itemBuilder: (context, index) {
-                        final league = _leagues[index];
-                        final id = league.id;
-                        final isSelected = id == _selectedLeagueId;
-
-                        final isFavorite = _preferredLeagues.any(
-                          (test) => test == _leagues[index].id,
-                        );
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedLeagueId = id;
-
-                              League? leagueSelected;
-                              try {
-                                leagueSelected = _leagues.firstWhere(
-                                  (league) => league.id == _selectedLeagueId,
-                                );
-                              } catch (e) {
-                                leagueSelected = null;
-                              }
-                              if (leagueSelected != null) {
-                                currentLeagueSchedule(leagueSelected);
-                              }
-
-                              scrollToSelectedLeague();
-                            });
-                          },
-
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 7),
-                            child: SizedBox(
-                              width: 80,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Stack(
-                                    alignment: Alignment.topRight,
-                                    children: [
-                                      Container(
-                                        width: 60,
-                                        height: 60,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: isSelected
-                                                ? Colors.red
-                                                : Colors.black,
-                                            width: 4,
-                                          ),
-                                        ),
-                                        padding: const EdgeInsets.all(2),
-                                        child: ClipOval(
-                                          child: CachedNetworkImage(
-                                            imageUrl: league.imageUrl ?? '',
-                                            width: 60,
-                                            height: 60,
-                                            fit: BoxFit.contain,
-                                            placeholder: (_, __) =>
-                                                const SizedBox(
-                                                  width: 20,
-                                                  height: 20,
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                        strokeWidth: 2,
-                                                      ),
-                                                ),
-                                            errorWidget: (_, __, ___) =>
-                                                const Icon(Icons.error),
-                                          ),
-                                        ),
-                                      ),
-                                      GestureDetector(
-                                        onTap: () async {
-                                          final prefs =
-                                              await SharedPreferences.getInstance();
-
-                                          _selectedLeagueId = id;
-
-                                          if (_preferredLeagues.contains(
-                                            _selectedLeagueId,
-                                          )) {
-                                            _preferredLeagues.remove(
-                                              _selectedLeagueId,
-                                            );
-                                          } else {
-                                            _preferredLeagues.add(
-                                              _selectedLeagueId,
-                                            );
-                                          }
-                                          // Solo fuori da setState
-                                          await prefs.setStringList(
-                                            'league_ids',
-                                            _preferredLeagues
-                                                .map((e) => '$e')
-                                                .toList(),
-                                          );
-
-                                          orderPreferredLeagueList(_leagues);
-                                          League? leagueSelected;
-                                          try {
-                                            leagueSelected = _leagues
-                                                .firstWhere(
-                                                  (league) =>
-                                                      league.id ==
-                                                      _selectedLeagueId,
-                                                );
-                                          } catch (e) {
-                                            leagueSelected = null;
-                                          }
-                                          setState(() {});
-
-                                          if (leagueSelected != null) {
-                                            currentLeagueSchedule(
-                                              leagueSelected,
-                                            );
-                                          }
-
-                                          WidgetsBinding.instance
-                                              .addPostFrameCallback((_) {
-                                                //scrollToSelectedLeague();
-                                              });
-                                        },
-                                        child: (isFavorite)
-                                            ? const Icon(
-                                                Icons.star,
-                                                color: Colors.yellow,
-                                                size: 18,
-                                              )
-                                            : const Icon(
-                                                Icons.star_border,
-                                                color: Colors.grey,
-                                                size: 18,
-                                              ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  SizedBox(
-                                    height: 40,
-                                    child: Text(
-                                      league.name ?? '',
-                                      textAlign: TextAlign.center,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.labelMedium
-                                          ?.copyWith(
-                                            fontWeight: isSelected
-                                                ? FontWeight.bold
-                                                : FontWeight.normal,
-                                          ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
+                    child: ReorderableRow(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      onReorder: _onReorder,
+                      scrollController: _scrollController,
+                      children: leagueWidgets,
                     ),
                   ),
 
