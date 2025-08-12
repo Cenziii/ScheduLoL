@@ -1,4 +1,4 @@
-name: ScheduLoL
+name: lol_competitive
 description: "LoL Competitive Schedule"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
