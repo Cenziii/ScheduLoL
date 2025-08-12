@@ -77,8 +77,8 @@ class PandaService {
       } on TimeoutException catch (_) {
         debugPrint('Tournament Request timed out');
         return null;
-      } on SocketException catch (_) {
-        debugPrint('Network error while fetching BuildingInsights');
+      } on SocketException catch (e) {
+        debugPrint('Network error while fetching $e');
         return null;
       } on FormatException catch (_) {
         debugPrint('Invalid JSON format in BuildingInsights response');

@@ -44,6 +44,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     _pageController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -86,7 +87,7 @@ class _HomePageState extends State<HomePage> {
       });
     } else {
       setState(() {
-        _error = true;
+        //_error = true;
         _isLoading = false;
       });
     }
