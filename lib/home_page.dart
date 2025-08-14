@@ -5,10 +5,12 @@ import 'package:lol_competitive/classes/league.dart';
 import 'package:lol_competitive/classes/match.dart';
 import 'package:lol_competitive/classes/tournament.dart';
 import 'package:lol_competitive/components/match_week_view.dart';
+import 'package:lol_competitive/services/github.dart';
 import 'package:lol_competitive/services/panda.dart';
 import 'package:responsive_builder/responsive_builder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:reorderables/reorderables.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -39,6 +41,13 @@ class _HomePageState extends State<HomePage> {
 
   void _init() async {
     await loadHomeData();
+
+    var update = await GitHubService().getCheckUpdates();
+    if (update != null && mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showUpdateDialog(context, update[0], update[1]);
+      });
+    }
   }
 
   @override
@@ -46,6 +55,39 @@ class _HomePageState extends State<HomePage> {
     _pageController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _showUpdateDialog(
+    BuildContext context,
+    String latestVersion,
+    String apkUrl,
+  ) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Nuova versione disponibile'),
+        content: Text('È disponibile la versione $latestVersion dell’app.'),
+        actions: [
+          TextButton(
+            child: const Text('Più tardi'),
+            onPressed: () => Navigator.pop(context),
+          ),
+          ElevatedButton(
+            child: const Text('Aggiorna'),
+            onPressed: () {
+              Navigator.pop(context);
+              _launchURL(apkUrl);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _launchURL(String url) async {
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    }
   }
 
   Future<void> loadHomeData() async {
@@ -250,6 +292,17 @@ class _HomePageState extends State<HomePage> {
                 ),
                 elevation: 1.0,
                 centerTitle: true,
+                leading: IconButton(
+                  icon: Icon(Icons.download, color: theme.colorScheme.surface),
+                  tooltip: 'Check Update',
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const AboutPage(),
+                      ),
+                    );
+                  },
+                ),
                 iconTheme: IconThemeData(color: theme.colorScheme.onPrimary),
                 actions: [
                   IconButton(

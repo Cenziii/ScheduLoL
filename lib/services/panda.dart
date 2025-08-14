@@ -9,7 +9,6 @@ import 'package:lol_competitive/classes/league.dart';
 import 'package:lol_competitive/classes/match.dart';
 import 'package:lol_competitive/classes/serie.dart';
 import 'package:lol_competitive/classes/tournament.dart';
-import 'package:fast_cached_network_image/fast_cached_network_image.dart';
 
 class PandaService {
   PandaService._privateConstructor();
