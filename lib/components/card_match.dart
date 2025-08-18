@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:lol_competitive/classes/match.dart';
 import 'package:lol_competitive/classes/streamlist.dart';
 import 'package:lol_competitive/classes/team.dart';
+import 'package:lol_competitive/services/notification.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class CardMatch extends StatelessWidget {
@@ -126,9 +127,29 @@ class CardMatch extends StatelessWidget {
                   },
                 ),
               if (match.status == 'not_started')
-                Text(
-                  ' - ',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+                IconButton(
+                  icon: Icon(Icons.notification_add),
+                  onPressed: () async {
+                    if (match.scheduledAt != null) {
+                      NotificationService().scheduleNotification(
+                        title: 'Match is starting',
+                        body: '$team1 vs $team2',
+                        month: DateTime.now().month,
+                        day: DateTime.now().day,
+                        hour: DateTime.now().hour,
+                        minute: DateTime.now().minute,
+                        matchId: match.id!
+                      );
+                      /*NotificationService().scheduleNotification(
+                        title: 'Match is starting',
+                        body: '$team1 vs $team2',
+                        month: scheduleAt.month,
+                        day: scheduleAt.day,
+                        hour: scheduleAt.hour,
+                        minute: scheduleAt.minute,
+                      );*/
+                    }
+                  },
                 ),
               if (match.status == 'finished')
                 Text(

@@ -151,6 +151,31 @@ class _HomePageState extends State<HomePage> {
     prefs.setStringList('league_ids', orderIds);
   }
 
+  void checkNotificationsPastMatch(List<Match> match) async{
+    final prefs = await SharedPreferences.getInstance();
+    List<String>? ids = prefs.getStringList('notify_ids');
+    print(ids);
+    if(ids != null )
+    {
+      for(int i = 0; i < match.length; i++){
+        if(match[i].id != null)
+        {
+          ids.any((id) => id == match[i].id.toString());
+          ids.removeWhere((element) => element == match[i].id.toString());
+        }
+        
+         
+      }
+      prefs.setStringList('notify_ids', ids);
+      print(ids);  
+      
+    }
+    else {
+      List<String> ids = [];
+      prefs.setStringList('notify_ids', ids);
+    }
+  }
+
   Future<void> currentLeagueSchedule(League lg) async {
     setState(() {
       _isLoadingSchedule = true;
@@ -165,6 +190,8 @@ class _HomePageState extends State<HomePage> {
     if (tournament != null) {
       for (int i = 0; i < tournament.length; i++) {
         final past = await PandaService().getMatches('past', tournament[i].id!);
+        // check past notifications not deleted in shared preferences
+        checkNotificationsPastMatch(past);
         final running = await PandaService().getMatches(
           'running',
           tournament[i].id!,

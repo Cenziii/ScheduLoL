@@ -2,7 +2,9 @@ import 'package:fast_cached_network_image/fast_cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:lol_competitive/home_page.dart';
+import 'package:lol_competitive/services/notification.dart';
 import 'package:lol_competitive/theme/theme.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -10,7 +12,16 @@ void main() async {
 
   await FastCachedImageConfig.init();
 
+  await NotificationService().initNotification();
+  requestNotificationPermission();
   runApp(const MyApp());
+}
+
+Future<void> requestNotificationPermission() async {
+  final status = await Permission.notification.status;
+  if (!status.isGranted) {
+    await Permission.notification.request();
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -22,7 +33,7 @@ class MyApp extends StatelessWidget {
     ThemeMode themeMode = ThemeMode.light;
 
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'ScheduLoL',
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: themeMode,
