@@ -36,21 +36,22 @@ class NotificationService {
       android: initSettingsAndroid,
     );
 
-    await notificationsPlugin.initialize(initSettings,
-     onDidReceiveNotificationResponse:  (NotificationResponse response) async {
-      if (response.payload != null) {
+    await notificationsPlugin.initialize(
+      initSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse response) async {
+        if (response.payload != null) {
           final prefs = await SharedPreferences.getInstance();
           List<String>? ids = prefs.getStringList('notify_ids');
           print(ids);
-          if(ids != null )
-          {
+          if (ids != null) {
             ids.any((id) => id == response.payload);
-              ids.removeWhere((element) => element == response.payload);
-              prefs.setStringList('notify_ids', ids);
-              print(ids);
-            }
+            ids.removeWhere((element) => element == response.payload);
+            prefs.setStringList('notify_ids', ids);
+            print(ids);
           }
-    } );
+        }
+      },
+    );
 
     _isInitialized = true;
   }
@@ -64,7 +65,6 @@ class NotificationService {
         channelDescription: 'Channel',
         importance: Importance.max,
         priority: Priority.high,
-        
       ),
     );
   }
@@ -77,23 +77,22 @@ class NotificationService {
     String? payload,
   }) async {
     print(id_notification);
-    return notificationsPlugin.show(id_notification++, title, body, notificationDetails());
+    return notificationsPlugin.show(
+      id_notification++,
+      title,
+      body,
+      notificationDetails(),
+    );
   }
 
   Future<void> scheduleNotification({
     int id = 0,
     required String title,
     required String body,
-    required int month,
-    required int day,
-    required int hour,
-    required int minute,
-    required int matchId
+    required DateTime datetime,
+    required int matchId,
   }) async {
-    // Get the current date/time in device's local timezone
-    final now = tz.TZDateTime.now(tz.local);
-
-    final scheduledDate = tz.TZDateTime.now(tz.local).add(const Duration(seconds: 30));
+    final scheduledDate = tz.TZDateTime.from(datetime, tz.local);
 
     try {
       int id = math.Random().nextInt(10000);
@@ -104,7 +103,7 @@ class NotificationService {
         scheduledDate,
         notificationDetails(),
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-        payload: matchId.toString()
+        payload: matchId.toString(),
       );
     } catch (e) {
       print("Error at zonedScheduleNotification----------------------------$e");

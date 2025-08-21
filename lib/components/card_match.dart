@@ -5,6 +5,7 @@ import 'package:lol_competitive/classes/match.dart';
 import 'package:lol_competitive/classes/streamlist.dart';
 import 'package:lol_competitive/classes/team.dart';
 import 'package:lol_competitive/services/notification.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class CardMatch extends StatelessWidget {
@@ -37,6 +38,17 @@ class CardMatch extends StatelessWidget {
     } else {
       // Error handling
       debugPrint('Could not launch Twitch app or website.');
+    }
+  }
+
+  Future<bool> checkNotification(int id) async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String>? ids = prefs.getStringList('notify_ids');
+    if (ids != null) {
+      bool result = ids.any((item) => int.parse(item) == id);
+      return result;
+    } else {
+      return false;
     }
   }
 
@@ -127,30 +139,57 @@ class CardMatch extends StatelessWidget {
                   },
                 ),
               if (match.status == 'not_started')
-                IconButton(
-                  icon: Icon(Icons.notification_add),
-                  onPressed: () async {
-                    if (match.scheduledAt != null) {
-                      NotificationService().scheduleNotification(
-                        title: 'Match is starting',
-                        body: '$team1 vs $team2',
-                        month: DateTime.now().month,
-                        day: DateTime.now().day,
-                        hour: DateTime.now().hour,
-                        minute: DateTime.now().minute,
-                        matchId: match.id!
-                      );
-                      /*NotificationService().scheduleNotification(
-                        title: 'Match is starting',
-                        body: '$team1 vs $team2',
-                        month: scheduleAt.month,
-                        day: scheduleAt.day,
-                        hour: scheduleAt.hour,
-                        minute: scheduleAt.minute,
-                      );*/
+                FutureBuilder<bool>(
+                  future: checkNotification(match.id!),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return const Icon(Icons.sync);
                     }
+
+                    bool notificationActivated = snapshot.data ?? false;
+
+                    return StatefulBuilder(
+                      builder: (context, setLocalState) {
+                        return IconButton(
+                          icon: Icon(
+                            notificationActivated
+                                ? Icons.notifications_active
+                                : Icons.notification_add,
+                          ),
+                          onPressed: () async {
+                            if (match.scheduledAt != null) {
+                              if (notificationActivated) {
+                              } else {
+                                // Schedule new notification
+                                await NotificationService()
+                                    .scheduleNotification(
+                                      title: 'Match is starting',
+                                      body: '$team1 vs $team2',
+                                      datetime: scheduleAt,
+                                      matchId: match.id!,
+                                    );
+                              }
+
+                              // Toggle UI state immediately
+                              setLocalState(() {
+                                notificationActivated = !notificationActivated;
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    "Notifica creata per $team1 vs $team2 alle ${match.scheduledAt!.hour}:${match.scheduledAt!.minute.toString().padLeft(2, '0')}",
+                                  ),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          },
+                        );
+                      },
+                    );
                   },
                 ),
+
               if (match.status == 'finished')
                 Text(
                   '${match.results[0].score}-${match.results[1].score}',

@@ -31,6 +31,9 @@ class _HomePageState extends State<HomePage> {
   int _selectedLeagueId = 0;
   late final PageController _pageController;
   final ScrollController _scrollController = ScrollController();
+  String apkUrl = '';
+  String latestVersion = '';
+  bool updateAvailable = false;
 
   @override
   void initState() {
@@ -42,10 +45,24 @@ class _HomePageState extends State<HomePage> {
   void _init() async {
     await loadHomeData();
 
+    _checkUpdate();
+  }
+
+  void _checkUpdate() async {
     var update = await GitHubService().getCheckUpdates();
+
     if (update != null && mounted) {
+      setState(() {
+        updateAvailable = true;
+        apkUrl = update[1];
+        latestVersion = update[0];
+      });
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _showUpdateDialog(context, update[0], update[1]);
+      });
+    } else if (mounted) {
+      setState(() {
+        updateAvailable = false;
       });
     }
   }
@@ -151,26 +168,20 @@ class _HomePageState extends State<HomePage> {
     prefs.setStringList('league_ids', orderIds);
   }
 
-  void checkNotificationsPastMatch(List<Match> match) async{
+  void checkNotificationsPastMatch(List<Match> match) async {
     final prefs = await SharedPreferences.getInstance();
     List<String>? ids = prefs.getStringList('notify_ids');
     print(ids);
-    if(ids != null )
-    {
-      for(int i = 0; i < match.length; i++){
-        if(match[i].id != null)
-        {
+    if (ids != null) {
+      for (int i = 0; i < match.length; i++) {
+        if (match[i].id != null) {
           ids.any((id) => id == match[i].id.toString());
           ids.removeWhere((element) => element == match[i].id.toString());
         }
-        
-         
       }
       prefs.setStringList('notify_ids', ids);
-      print(ids);  
-      
-    }
-    else {
+      print(ids);
+    } else {
       List<String> ids = [];
       prefs.setStringList('notify_ids', ids);
     }
@@ -299,7 +310,8 @@ class _HomePageState extends State<HomePage> {
     if (!_error && !_isLoading) {
       return ResponsiveBuilder(
         builder: (responsiveContext, sizingInformation) {
-          if (sizingInformation.deviceScreenType == DeviceScreenType.mobile) {
+          if (sizingInformation.deviceScreenType == DeviceScreenType.mobile ||
+              sizingInformation.deviceScreenType == DeviceScreenType.tablet) {
             return Scaffold(
               appBar: AppBar(
                 title: Text(
@@ -319,17 +331,17 @@ class _HomePageState extends State<HomePage> {
                 ),
                 elevation: 1.0,
                 centerTitle: true,
-                leading: IconButton(
-                  icon: Icon(Icons.download, color: theme.colorScheme.surface),
-                  tooltip: 'Check Update',
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const AboutPage(),
-                      ),
-                    );
-                  },
-                ),
+                leading: updateAvailable
+                    ? IconButton(
+                        icon: const Icon(Icons.download),
+                        color: theme.colorScheme.surface,
+                        tooltip: 'Scarica aggiornamento',
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _launchURL(apkUrl);
+                        },
+                      )
+                    : null,
                 iconTheme: IconThemeData(color: theme.colorScheme.onPrimary),
                 actions: [
                   IconButton(

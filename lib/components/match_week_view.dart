@@ -74,6 +74,15 @@ class _MatchWeekViewState extends State<MatchWeekView> {
 
   @override
   Widget build(BuildContext context) {
+    final isTabletLandscape =
+        MediaQuery.of(context).size.width > 600 &&
+        MediaQuery.of(context).orientation == Orientation.landscape;
+
+    final headerStyle = TextStyle(
+      fontSize: isTabletLandscape ? 24 : 18, // più grande su tablet landscape
+      fontWeight: FontWeight.bold,
+    );
+
     return Column(
       children: [
         Expanded(
@@ -93,17 +102,30 @@ class _MatchWeekViewState extends State<MatchWeekView> {
                     padding: const EdgeInsets.all(5),
                     child: Text(
                       '${formatter.format(weekStart)} - ${formatter.format(weekEnd)}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: headerStyle,
                     ),
                   ),
                   Expanded(
-                    child: ListView.builder(
-                      itemCount: matches.length,
-                      itemBuilder: (context, i) => CardMatch(match: matches[i]),
-                    ),
+                    child: isTabletLandscape
+                        ? GridView.builder(
+                            padding: const EdgeInsets.all(8),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2, // two cards per row
+                                  childAspectRatio:
+                                      5, // adjust height/width ratio
+                                  mainAxisSpacing: 8,
+                                  crossAxisSpacing: 8,
+                                ),
+                            itemCount: matches.length,
+                            itemBuilder: (context, i) =>
+                                CardMatch(match: matches[i]),
+                          )
+                        : ListView.builder(
+                            itemCount: matches.length,
+                            itemBuilder: (context, i) =>
+                                CardMatch(match: matches[i]),
+                          ),
                   ),
                 ],
               );
