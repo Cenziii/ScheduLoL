@@ -42,9 +42,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _init() async {
+    _checkUpdate();
     await loadHomeData();
 
-    _checkUpdate();
   }
 
   void _checkUpdate() async {
@@ -113,32 +113,20 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> loadTournaments() async {
-    List<League>? leagues = await PandaService().getLeagues();
-
-    if (leagues != null && leagues.isNotEmpty) {
+  Future<void> refreshLeagueSchedule() async 
+  {
+    await currentLeagueSchedule(_leagues.first);
+    setState(() {
       
-      var strIds = await  SharedPreferencesService().getSharedPreferences('league_ids');
+    });
+  }
 
-      if (strIds != null && strIds.isNotEmpty) {
-        List<int> orderIds = strIds.map(int.parse).toList();
-
-        Map<int, int> positionMap = {
-          for (int i = 0; i < orderIds.length; i++) orderIds[i]: i,
-        };
-
-        leagues.sort(
-          (a, b) => (positionMap[a.id] ?? orderIds.length).compareTo(
-            positionMap[b.id] ?? orderIds.length,
-          ),
-        );
-      } else {
-        List<String> temp = [];
-        SharedPreferencesService().setSharedPreferences('league_ids', temp);
-      }
-      setState(() {
+  Future<void> loadTournaments() async {
+    List<League>? leagues = await PandaService().loadTournaments();
+      if(leagues != null)
+      {
+        setState(() {
         _leagues = leagues;
-
         _isLoading = false;
         _error = false;
       });
@@ -155,32 +143,10 @@ class _HomePageState extends State<HomePage> {
       _leagues.insert(newIndex, item);
     });
 
-    storeInSharedPreferences();
+    SharedPreferencesService().setSharedPreferences('league_ids', _leagues.map((item) => item.id.toString()).toList());
   }
 
-  Future<void> storeInSharedPreferences() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    List<String> orderIds = _leagues.map((item) => item.id.toString()).toList();
-    prefs.setStringList('league_ids', orderIds);
-  }
-
-  void checkNotificationsPastMatch(List<Match> match) async {
-    final prefs = await SharedPreferences.getInstance();
-    List<String>? ids = prefs.getStringList('notify_ids');
-    if (ids != null) {
-      for (int i = 0; i < match.length; i++) {
-        if (match[i].id != null) {
-          ids.any((id) => id == match[i].id.toString());
-          ids.removeWhere((element) => element == match[i].id.toString());
-        }
-      }
-      prefs.setStringList('notify_ids', ids);
-    } else {
-      List<String> ids = [];
-      prefs.setStringList('notify_ids', ids);
-    }
-  }
+  
 
   Future<void> currentLeagueSchedule(League lg) async {
     setState(() {
@@ -197,7 +163,7 @@ class _HomePageState extends State<HomePage> {
       for (int i = 0; i < tournament.length; i++) {
         final past = await PandaService().getMatches('past', tournament[i].id!);
         // check past notifications not deleted in shared preferences
-        checkNotificationsPastMatch(past);
+        SharedPreferencesService().checkNotificationsPastMatch(past);
         final running = await PandaService().getMatches(
           'running',
           tournament[i].id!,
@@ -372,7 +338,7 @@ class _HomePageState extends State<HomePage> {
                     child: _isLoadingSchedule
                         ? const Center(child: CircularProgressIndicator())
                         : MatchWeekView(allMatches: _allMatches),
-                  ),
+        ),
                 ],
               ),
             );

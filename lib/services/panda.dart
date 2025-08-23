@@ -9,6 +9,7 @@ import 'package:lol_competitive/classes/league.dart';
 import 'package:lol_competitive/classes/match.dart';
 import 'package:lol_competitive/classes/serie.dart';
 import 'package:lol_competitive/classes/tournament.dart';
+import 'package:lol_competitive/services/shared_prefs.dart';
 
 class PandaService {
   PandaService._privateConstructor();
@@ -27,6 +28,35 @@ class PandaService {
       return false;
     }
     return true;
+  }
+
+  Future<List<League>?> loadTournaments() async {
+    List<League>? leagues = await PandaService().getLeagues();
+
+    if (leagues != null && leagues.isNotEmpty) {
+      
+      var strIds = await  SharedPreferencesService().getSharedPreferences('league_ids');
+
+      if (strIds != null && strIds.isNotEmpty) {
+        List<int> orderIds = strIds.map(int.parse).toList();
+
+        Map<int, int> positionMap = {
+          for (int i = 0; i < orderIds.length; i++) orderIds[i]: i,
+        };
+
+        leagues.sort(
+          (a, b) => (positionMap[a.id] ?? orderIds.length).compareTo(
+            positionMap[b.id] ?? orderIds.length,
+          ),
+        );
+        
+      } else {
+        List<String> temp = [];
+        SharedPreferencesService().setSharedPreferences('league_ids', temp);
+      }
+      return leagues;
+    }
+    return null;
   }
 
   Future<List<League>?> getLeagues() async {

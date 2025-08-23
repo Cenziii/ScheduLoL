@@ -99,6 +99,7 @@ class _NotificationStateState extends State<NotificationState> {
       );
     }
 
+    // 🔑 fallback obbligatorio
     return const SizedBox.shrink();
   }
 }

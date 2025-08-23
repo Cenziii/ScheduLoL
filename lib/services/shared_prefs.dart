@@ -36,4 +36,21 @@ class SharedPreferencesService{
       return false;
     }
   }
+
+  Future<void> checkNotificationsPastMatch(List<Match> match) async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String>? ids = prefs.getStringList('notify_ids');
+    if (ids != null) {
+      for (int i = 0; i < match.length; i++) {
+        if (match[i].id != null) {
+          ids.any((id) => id == match[i].id.toString());
+          ids.removeWhere((element) => element == match[i].id.toString());
+        }
+      }
+      prefs.setStringList('notify_ids', ids);
+    } else {
+      List<String> ids = [];
+      prefs.setStringList('notify_ids', ids);
+    }
+  }
 }

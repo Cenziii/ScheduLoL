@@ -28,11 +28,11 @@ class _MatchWeekViewState extends State<MatchWeekView> {
 
     // Scroll alla settimana corrente
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final index = indexOfCurrentWeek();
-      if (mounted) {
-        _pageController.jumpToPage(index);
-      }
-    });
+  if (mounted && weekStartDates.isNotEmpty) {
+    final index = indexOfCurrentWeek();
+    _pageController.jumpToPage(index);
+  }
+});
   }
 
   Map<DateTime, List<Match>> groupMatchesByWeek(List<Match> matches) {
@@ -82,6 +82,12 @@ class _MatchWeekViewState extends State<MatchWeekView> {
       fontSize: isTabletLandscape ? 24 : 18, // più grande su tablet landscape
       fontWeight: FontWeight.bold,
     );
+
+    if (weekStartDates.isEmpty) {
+    return const Center(
+      child: Text("No matches available"),
+    );
+  }
 
     return Column(
       children: [
