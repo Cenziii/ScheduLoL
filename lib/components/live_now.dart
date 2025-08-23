@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class LiveNowWidget extends StatefulWidget {
-  const LiveNowWidget({Key? key}) : super(key: key);
+  const LiveNowWidget({super.key});
 
   @override
   _LiveNowWidgetState createState() => _LiveNowWidgetState();

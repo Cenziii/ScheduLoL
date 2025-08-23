@@ -24,7 +24,7 @@ class ExpectedRoster {
   }
 
   Map<String, dynamic> toJson() => {
-    "players": players.map((x) => x?.toJson()).toList(),
+    "players": players.map((x) => x.toJson()).toList(),
     "team": team?.toJson(),
   };
 

@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -42,12 +41,10 @@ class NotificationService {
         if (response.payload != null) {
           final prefs = await SharedPreferences.getInstance();
           List<String>? ids = prefs.getStringList('notify_ids');
-          print(ids);
           if (ids != null) {
             ids.any((id) => id == response.payload);
             ids.removeWhere((element) => element == response.payload);
             prefs.setStringList('notify_ids', ids);
-            print(ids);
           }
         }
       },
@@ -76,7 +73,6 @@ class NotificationService {
     String? body,
     String? payload,
   }) async {
-    print(id_notification);
     return notificationsPlugin.show(
       id_notification++,
       title,
@@ -102,7 +98,7 @@ class NotificationService {
         body,
         scheduledDate,
         notificationDetails(),
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         payload: matchId.toString(),
       );
     } catch (e) {

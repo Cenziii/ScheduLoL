@@ -53,7 +53,7 @@ class Serie {
     League? league,
     List<Tournament>? tournaments,
     String? season,
-    dynamic? videogameTitle,
+    dynamic videogameTitle,
     String? fullName,
   }) {
     return Serie(

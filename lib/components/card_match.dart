@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:lol_competitive/classes/match.dart';
 import 'package:lol_competitive/classes/streamlist.dart';
 import 'package:lol_competitive/classes/team.dart';
-import 'package:lol_competitive/services/notification.dart';
+import 'package:lol_competitive/components/info_match.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -37,7 +37,7 @@ class CardMatch extends StatelessWidget {
       await launchUrl(liveWebUrl, mode: LaunchMode.externalApplication);
     } else {
       // Error handling
-      debugPrint('Could not launch Twitch app or website.');
+      debugPrint('Could not launch the app or website.');
     }
   }
 
@@ -49,6 +49,16 @@ class CardMatch extends StatelessWidget {
       return result;
     } else {
       return false;
+    }
+  }
+
+  void addNotificationsPastMatch(Match match) async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String>? ids = prefs.getStringList('notify_ids');
+    if(ids != null)
+    {
+      ids.add(match.id.toString());
+      prefs.setStringList('notify_ids', ids);
     }
   }
 
@@ -83,8 +93,7 @@ class CardMatch extends StatelessWidget {
     }
 
     if (match.scheduledAt != null) {
-      scheduleAt = match.scheduledAt!;
-      scheduleAt = scheduleAt.add(Duration(hours: 2));
+      scheduleAt = match.scheduledAt!.toLocal();
     }
 
     String matchType = (match.matchType!.contains('best_of')) ? 'Bo' : '';
@@ -129,72 +138,7 @@ class CardMatch extends StatelessWidget {
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                 ),
               ),
-              if (match.status == 'running')
-                IconButton(
-                  icon: Image.asset('assets/icon/live-stream.png', scale: 12),
-                  onPressed: () async {
-                    if (match.streamsList.isNotEmpty) {
-                      await launchLive(match.streamsList.first);
-                    }
-                  },
-                ),
-              if (match.status == 'not_started')
-                FutureBuilder<bool>(
-                  future: checkNotification(match.id!),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return const Icon(Icons.sync);
-                    }
-
-                    bool notificationActivated = snapshot.data ?? false;
-
-                    return StatefulBuilder(
-                      builder: (context, setLocalState) {
-                        return IconButton(
-                          icon: Icon(
-                            notificationActivated
-                                ? Icons.notifications_active
-                                : Icons.notification_add,
-                          ),
-                          onPressed: () async {
-                            if (match.scheduledAt != null) {
-                              if (notificationActivated) {
-                              } else {
-                                // Schedule new notification
-                                await NotificationService()
-                                    .scheduleNotification(
-                                      title: 'Match is starting',
-                                      body: '$team1 vs $team2',
-                                      datetime: scheduleAt,
-                                      matchId: match.id!,
-                                    );
-                              }
-
-                              // Toggle UI state immediately
-                              setLocalState(() {
-                                notificationActivated = !notificationActivated;
-                              });
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    "Notifica creata per $team1 vs $team2 alle ${match.scheduledAt!.hour}:${match.scheduledAt!.minute.toString().padLeft(2, '0')}",
-                                  ),
-                                  duration: const Duration(seconds: 2),
-                                ),
-                              );
-                            }
-                          },
-                        );
-                      },
-                    );
-                  },
-                ),
-
-              if (match.status == 'finished')
-                Text(
-                  '${match.results[0].score}-${match.results[1].score}',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
-                ),
+              NotificationState(match: match, scheduleAt: scheduleAt, team1: team1, team2: team2 ),
 
               FittedBox(
                 child: Text(

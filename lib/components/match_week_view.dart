@@ -111,9 +111,8 @@ class _MatchWeekViewState extends State<MatchWeekView> {
                             padding: const EdgeInsets.all(8),
                             gridDelegate:
                                 const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2, // two cards per row
-                                  childAspectRatio:
-                                      5, // adjust height/width ratio
+                                  crossAxisCount: 2,
+                                  childAspectRatio: 5,
                                   mainAxisSpacing: 8,
                                   crossAxisSpacing: 8,
                                 ),

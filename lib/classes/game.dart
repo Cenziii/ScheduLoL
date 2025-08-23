@@ -39,7 +39,7 @@ class Game {
     bool? finished,
     bool? forfeit,
     int? id,
-    dynamic? length,
+    dynamic length,
     int? matchId,
     int? position,
     String? status,

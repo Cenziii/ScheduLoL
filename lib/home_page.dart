@@ -7,6 +7,7 @@ import 'package:lol_competitive/classes/tournament.dart';
 import 'package:lol_competitive/components/match_week_view.dart';
 import 'package:lol_competitive/services/github.dart';
 import 'package:lol_competitive/services/panda.dart';
+import 'package:lol_competitive/services/shared_prefs.dart';
 import 'package:responsive_builder/responsive_builder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:reorderables/reorderables.dart';
@@ -24,8 +25,6 @@ class _HomePageState extends State<HomePage> {
   bool _isLoading = true;
   bool _isLoadingSchedule = false;
   List<League> _leagues = [];
-  List<int> _preferredLeagues = [];
-  late League _currentLeague;
   late List<Match> _allMatches = [];
   int _selectedIndex = 0;
   int _selectedLeagueId = 0;
@@ -82,15 +81,15 @@ class _HomePageState extends State<HomePage> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Nuova versione disponibile'),
-        content: Text('È disponibile la versione $latestVersion dell’app.'),
+        title: const Text('New Version available'),
+        content: Text('New version $latestVersion '),
         actions: [
           TextButton(
-            child: const Text('Più tardi'),
+            child: const Text('Later'),
             onPressed: () => Navigator.pop(context),
           ),
           ElevatedButton(
-            child: const Text('Aggiorna'),
+            child: const Text('Download'),
             onPressed: () {
               Navigator.pop(context);
               _launchURL(apkUrl);
@@ -118,8 +117,8 @@ class _HomePageState extends State<HomePage> {
     List<League>? leagues = await PandaService().getLeagues();
 
     if (leagues != null && leagues.isNotEmpty) {
-      final prefs = await SharedPreferences.getInstance();
-      var strIds = prefs.getStringList('league_ids');
+      
+      var strIds = await  SharedPreferencesService().getSharedPreferences('league_ids');
 
       if (strIds != null && strIds.isNotEmpty) {
         List<int> orderIds = strIds.map(int.parse).toList();
@@ -135,18 +134,16 @@ class _HomePageState extends State<HomePage> {
         );
       } else {
         List<String> temp = [];
-        prefs.setStringList('league_ids', temp);
+        SharedPreferencesService().setSharedPreferences('league_ids', temp);
       }
       setState(() {
         _leagues = leagues;
 
-        _currentLeague = leagues[0];
         _isLoading = false;
         _error = false;
       });
     } else {
       setState(() {
-        //_error = true;
         _isLoading = false;
       });
     }
@@ -171,7 +168,6 @@ class _HomePageState extends State<HomePage> {
   void checkNotificationsPastMatch(List<Match> match) async {
     final prefs = await SharedPreferences.getInstance();
     List<String>? ids = prefs.getStringList('notify_ids');
-    print(ids);
     if (ids != null) {
       for (int i = 0; i < match.length; i++) {
         if (match[i].id != null) {
@@ -180,7 +176,6 @@ class _HomePageState extends State<HomePage> {
         }
       }
       prefs.setStringList('notify_ids', ids);
-      print(ids);
     } else {
       List<String> ids = [];
       prefs.setStringList('notify_ids', ids);
@@ -335,7 +330,7 @@ class _HomePageState extends State<HomePage> {
                     ? IconButton(
                         icon: const Icon(Icons.download),
                         color: theme.colorScheme.surface,
-                        tooltip: 'Scarica aggiornamento',
+                        tooltip: 'Download new .apk file',
                         onPressed: () {
                           Navigator.pop(context);
                           _launchURL(apkUrl);
@@ -372,7 +367,7 @@ class _HomePageState extends State<HomePage> {
                   ),
 
                   const SizedBox(height: 2),
-                  // Lista unica scrollabile
+
                   Expanded(
                     child: _isLoadingSchedule
                         ? const Center(child: CircularProgressIndicator())
@@ -390,13 +385,13 @@ class _HomePageState extends State<HomePage> {
       return AlertDialog(
         backgroundColor: theme.colorScheme.surface,
         title: Text(
-          'Errore',
+          'Error',
           style: theme.textTheme.titleLarge?.copyWith(
             color: theme.colorScheme.onSurface,
           ),
         ),
         content: Text(
-          'Si è verificato un errore. Riprova.',
+          'An error occurred. Please try again.',
           style: theme.textTheme.bodyLarge?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
