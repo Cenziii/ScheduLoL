@@ -1,17 +1,9 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:lol_competitive/about_page.dart';
-import 'package:lol_competitive/classes/league.dart';
-import 'package:lol_competitive/classes/match.dart';
-import 'package:lol_competitive/classes/tournament.dart';
+import 'package:lol_competitive/components/home_controller.dart';
+import 'package:lol_competitive/components/home_header.dart';
+import 'package:lol_competitive/components/league_selector.dart';
 import 'package:lol_competitive/components/match_week_view.dart';
-import 'package:lol_competitive/services/github.dart';
-import 'package:lol_competitive/services/panda.dart';
-import 'package:lol_competitive/services/shared_prefs.dart';
 import 'package:responsive_builder/responsive_builder.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:reorderables/reorderables.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -20,325 +12,43 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
-  bool _error = false;
-  bool _isLoading = true;
-  bool _isLoadingSchedule = false;
-  List<League> _leagues = [];
-  late List<Match> _allMatches = [];
-  int _selectedIndex = 0;
-  int _selectedLeagueId = 0;
-  late final PageController _pageController;
-  final ScrollController _scrollController = ScrollController();
-  String apkUrl = '';
-  String latestVersion = '';
-  bool updateAvailable = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _init();
-    _pageController = PageController(initialPage: _selectedIndex);
-  }
-
-  void _init() async {
-    _checkUpdate();
-    await loadHomeData();
-
-  }
-
-  void _checkUpdate() async {
-    var update = await GitHubService().getCheckUpdates();
-
-    if (update != null && mounted) {
-      setState(() {
-        updateAvailable = true;
-        apkUrl = update[1];
-        latestVersion = update[0];
-      });
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showUpdateDialog(context, update[0], update[1]);
-      });
-    } else if (mounted) {
-      setState(() {
-        updateAvailable = false;
-      });
-    }
-  }
-
+class _HomePageState extends State<HomePage> with HomeController<HomePage> {
   @override
   void dispose() {
-    _pageController.dispose();
-    _scrollController.dispose();
+    pageController.dispose();
     super.dispose();
-  }
-
-  void _showUpdateDialog(
-    BuildContext context,
-    String latestVersion,
-    String apkUrl,
-  ) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('New Version available'),
-        content: Text('New version $latestVersion '),
-        actions: [
-          TextButton(
-            child: const Text('Later'),
-            onPressed: () => Navigator.pop(context),
-          ),
-          ElevatedButton(
-            child: const Text('Download'),
-            onPressed: () {
-              Navigator.pop(context);
-              _launchURL(apkUrl);
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _launchURL(String url) async {
-    if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-    }
-  }
-
-  Future<void> loadHomeData() async {
-    await loadTournaments();
-    if (_leagues.isNotEmpty) {
-      await currentLeagueSchedule(_leagues.first);
-    }
-  }
-
-  Future<void> refreshLeagueSchedule() async 
-  {
-    await currentLeagueSchedule(_leagues.first);
-    setState(() {
-      
-    });
-  }
-
-  Future<void> loadTournaments() async {
-    List<League>? leagues = await PandaService().loadTournaments();
-      if(leagues != null)
-      {
-        setState(() {
-        _leagues = leagues;
-        _isLoading = false;
-        _error = false;
-      });
-    } else {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  void _onReorder(int oldIndex, int newIndex) {
-    setState(() {
-      final item = _leagues.removeAt(oldIndex);
-      _leagues.insert(newIndex, item);
-    });
-
-    SharedPreferencesService().setSharedPreferences('league_ids', _leagues.map((item) => item.id.toString()).toList());
-  }
-
-  
-
-  Future<void> currentLeagueSchedule(League lg) async {
-    setState(() {
-      _isLoadingSchedule = true;
-    });
-
-    _allMatches.clear();
-
-    List<Tournament>? tournament = await PandaService().getCurrentTournament(
-      lg.id,
-    );
-
-    if (tournament != null) {
-      for (int i = 0; i < tournament.length; i++) {
-        final past = await PandaService().getMatches('past', tournament[i].id!);
-        // check past notifications not deleted in shared preferences
-        SharedPreferencesService().checkNotificationsPastMatch(past);
-        final running = await PandaService().getMatches(
-          'running',
-          tournament[i].id!,
-        );
-        final upcoming = await PandaService().getMatches(
-          'upcoming',
-          tournament[i].id!,
-        );
-        _allMatches = [
-          ..._allMatches,
-          ...past,
-          ...running,
-          ...upcoming,
-        ].where((m) => m.beginAt != null).toList();
-      }
-    }
-
-    setState(() {
-      _isLoadingSchedule = false;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    List<Widget> leagueWidgets = _leagues.map((league) {
-      final id = league.id;
-      final isSelected = id == _selectedLeagueId;
-
-      return GestureDetector(
-        key: ValueKey(id), // Necessario per ReorderableRow
-        onTap: () {
-          setState(() {
-            _selectedLeagueId = id;
-
-            League? leagueSelected;
-            try {
-              leagueSelected = _leagues.firstWhere(
-                (l) => l.id == _selectedLeagueId,
-              );
-            } catch (e) {
-              leagueSelected = null;
-            }
-            if (leagueSelected != null) {
-              currentLeagueSchedule(leagueSelected);
-            }
-          });
-        },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 7),
-          child: SizedBox(
-            width: 80,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: isSelected ? Colors.red : Colors.black,
-                      width: 4,
-                    ),
-                  ),
-                  padding: const EdgeInsets.all(2),
-                  child: ClipOval(
-                    child: CachedNetworkImage(
-                      imageUrl: league.imageUrl ?? '',
-                      width: 60,
-                      height: 60,
-                      fit: BoxFit.contain,
-                      placeholder: (_, __) => const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                      errorWidget: (_, __, ___) => const Icon(Icons.error),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                SizedBox(
-                  height: 40,
-                  child: Text(
-                    league.name ?? '',
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }).toList();
-
-    if (!_error && !_isLoading) {
+    if (!isError && !isLoading) {
       return ResponsiveBuilder(
-        builder: (responsiveContext, sizingInformation) {
-          if (sizingInformation.deviceScreenType == DeviceScreenType.mobile ||
-              sizingInformation.deviceScreenType == DeviceScreenType.tablet) {
+        builder: (_, sizingInfo) {
+          if (sizingInfo.isMobile || sizingInfo.isTablet) {
             return Scaffold(
-              appBar: AppBar(
-                title: Text(
-                  'ScheduLoL',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onPrimary,
-                  ),
-                ),
-                backgroundColor: theme.colorScheme.primary,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.only(
-                    bottomRight: Radius.circular(16),
-                    bottomLeft: Radius.circular(25),
-                  ),
-                ),
-                elevation: 1.0,
-                centerTitle: true,
-                leading: updateAvailable
-                    ? IconButton(
-                        icon: const Icon(Icons.download),
-                        color: theme.colorScheme.surface,
-                        tooltip: 'Download new .apk file',
-                        onPressed: () {
-                          Navigator.pop(context);
-                          _launchURL(apkUrl);
-                        },
-                      )
-                    : null,
-                iconTheme: IconThemeData(color: theme.colorScheme.onPrimary),
-                actions: [
-                  IconButton(
-                    icon: Icon(Icons.info, color: theme.colorScheme.surface),
-                    tooltip: 'About',
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const AboutPage(),
-                        ),
-                      );
-                    },
-                  ),
-                ],
+              appBar: HomeHeader(
+                theme: theme,
+                updateAvailable: updateAvailable,
+                apkUrl: apkUrl,
+                onDownloadPressed: launchURL,
               ),
-
               body: Column(
                 children: [
                   SizedBox(height: 5),
-                  SizedBox(
-                    height: 105,
-                    child: ReorderableRow(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      onReorder: _onReorder,
-                      scrollController: _scrollController,
-                      children: leagueWidgets,
-                    ),
+                  LeagueSelector(
+                    leagues: getLeagues,
+                    selectedLeagueId: selectedLeagueId,
+                    onReorder: onReorder,
+                    onLeagueTap: (lg) => currentLeagueSchedule(lg),
                   ),
-
                   const SizedBox(height: 2),
-
                   Expanded(
-                    child: _isLoadingSchedule
+                    child: isLoadingSchedule
                         ? const Center(child: CircularProgressIndicator())
-                        : MatchWeekView(allMatches: _allMatches),
-        ),
+                        : MatchWeekView(allMatches: getAllMatches),
+                  ),
                 ],
               ),
             );
@@ -347,7 +57,7 @@ class _HomePageState extends State<HomePage> {
           }
         },
       );
-    } else if (_error) {
+    } else if (isError) {
       return AlertDialog(
         backgroundColor: theme.colorScheme.surface,
         title: Text(
