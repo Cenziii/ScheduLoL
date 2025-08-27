@@ -47,7 +47,10 @@ class _HomePageState extends State<HomePage> with HomeController<HomePage> {
                   Expanded(
                     child: isLoadingSchedule
                         ? const Center(child: CircularProgressIndicator())
-                        : MatchWeekView(allMatches: getAllMatches),
+                        : MatchWeekView(
+                            allMatches: getAllMatches,
+                            onRefresh: refreshLeagueSchedule,
+                          ),
                   ),
                 ],
               ),

@@ -194,6 +194,8 @@ mixin HomeController<T extends StatefulWidget> on State<T> {
       _isLoadingSchedule = true;
     });
 
+    _selectedLeagueId = lg.id;
+
     _allMatches.clear();
 
     List<Tournament>? tournament = await PandaService().getCurrentTournament(

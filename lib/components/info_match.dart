@@ -5,8 +5,15 @@ import 'package:lol_competitive/classes/streamlist.dart';
 import 'package:lol_competitive/services/notification.dart';
 import 'package:lol_competitive/services/shared_prefs.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 class NotificationState extends StatefulWidget {
-  const NotificationState({super.key, required this.match, required this.scheduleAt, required this.team1, required this.team2});
+  const NotificationState({
+    super.key,
+    required this.match,
+    required this.scheduleAt,
+    required this.team1,
+    required this.team2,
+  });
   final DateTime scheduleAt;
   final Match match;
   final String team1;
@@ -17,22 +24,22 @@ class NotificationState extends StatefulWidget {
 }
 
 Future<void> launchLive(StreamsList stream) async {
-    String channel = stream.rawUrl!.split('/').last;
-    final liveAppUrl = Uri.parse('twitch://stream/$channel');
-    final liveWebUrl = Uri.parse(stream.rawUrl!);
+  String channel = stream.rawUrl!.split('/').last;
+  final liveAppUrl = Uri.parse('twitch://stream/$channel');
+  final liveWebUrl = Uri.parse(stream.rawUrl!);
 
-    // Try to open the Twitch app
-    if (await canLaunchUrl(liveAppUrl)) {
-      await launchUrl(liveWebUrl);
-    }
-    // Fallback to browser
-    else if (await canLaunchUrl(liveWebUrl)) {
-      await launchUrl(liveWebUrl, mode: LaunchMode.externalApplication);
-    } else {
-      // Error handling
-      debugPrint('Could not launch the app or website.');
-    }
+  // Try to open the Twitch app
+  if (await canLaunchUrl(liveAppUrl)) {
+    await launchUrl(liveWebUrl);
   }
+  // Fallback to browser
+  else if (await canLaunchUrl(liveWebUrl)) {
+    await launchUrl(liveWebUrl, mode: LaunchMode.externalApplication);
+  } else {
+    // Error handling
+    debugPrint('Could not launch the app or website.');
+  }
+}
 
 class _NotificationStateState extends State<NotificationState> {
   @override
@@ -87,7 +94,7 @@ class _NotificationStateState extends State<NotificationState> {
                         SnackBar(
                           content: Text(
                             "Notification created for ${widget.team1} vs ${widget.team2} at "
-                            "${widget.match.scheduledAt!.hour}:${widget.match.scheduledAt!.minute.toString().padLeft(2, '0')}",
+                            "${widget.scheduleAt.hour}:${widget.scheduleAt.minute.toString().padLeft(2, '0')}",
                           ),
                           duration: const Duration(seconds: 2),
                         ),

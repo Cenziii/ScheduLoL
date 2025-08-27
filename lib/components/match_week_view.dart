@@ -7,8 +7,12 @@ import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
 class MatchWeekView extends StatefulWidget {
   final List<Match> allMatches;
-
-  const MatchWeekView({super.key, required this.allMatches});
+  final Future<void> Function() onRefresh;
+  const MatchWeekView({
+    super.key,
+    required this.allMatches,
+    required this.onRefresh,
+  });
 
   @override
   State<MatchWeekView> createState() => _MatchWeekViewState();
@@ -28,11 +32,11 @@ class _MatchWeekViewState extends State<MatchWeekView> {
 
     // Scroll alla settimana corrente
     WidgetsBinding.instance.addPostFrameCallback((_) {
-  if (mounted && weekStartDates.isNotEmpty) {
-    final index = indexOfCurrentWeek();
-    _pageController.jumpToPage(index);
-  }
-});
+      if (mounted && weekStartDates.isNotEmpty) {
+        final index = indexOfCurrentWeek();
+        _pageController.jumpToPage(index);
+      }
+    });
   }
 
   Map<DateTime, List<Match>> groupMatchesByWeek(List<Match> matches) {
@@ -84,57 +88,58 @@ class _MatchWeekViewState extends State<MatchWeekView> {
     );
 
     if (weekStartDates.isEmpty) {
-    return const Center(
-      child: Text("No matches available"),
-    );
-  }
+      return const Center(child: Text("No matches available"));
+    }
 
     return Column(
       children: [
         Expanded(
-          child: PageView.builder(
-            controller: _pageController,
-            itemCount: weekStartDates.length,
-            itemBuilder: (context, index) {
-              final weekStart = weekStartDates[index];
-              final matches = grouped[weekStart]!;
-              final weekEnd = weekStart.add(const Duration(days: 6));
-              final formatter = DateFormat('dd MMM');
+          child: RefreshIndicator(
+            onRefresh: widget.onRefresh,
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: weekStartDates.length,
+              itemBuilder: (context, index) {
+                final weekStart = weekStartDates[index];
+                final matches = grouped[weekStart]!;
+                final weekEnd = weekStart.add(const Duration(days: 6));
+                final formatter = DateFormat('dd MMM');
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(5),
-                    child: Text(
-                      '${formatter.format(weekStart)} - ${formatter.format(weekEnd)}',
-                      style: headerStyle,
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(5),
+                      child: Text(
+                        '${formatter.format(weekStart)} - ${formatter.format(weekEnd)}',
+                        style: headerStyle,
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: isTabletLandscape
-                        ? GridView.builder(
-                            padding: const EdgeInsets.all(8),
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  childAspectRatio: 5,
-                                  mainAxisSpacing: 8,
-                                  crossAxisSpacing: 8,
-                                ),
-                            itemCount: matches.length,
-                            itemBuilder: (context, i) =>
-                                CardMatch(match: matches[i]),
-                          )
-                        : ListView.builder(
-                            itemCount: matches.length,
-                            itemBuilder: (context, i) =>
-                                CardMatch(match: matches[i]),
-                          ),
-                  ),
-                ],
-              );
-            },
+                    Expanded(
+                      child: isTabletLandscape
+                          ? GridView.builder(
+                              padding: const EdgeInsets.all(8),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    childAspectRatio: 5,
+                                    mainAxisSpacing: 8,
+                                    crossAxisSpacing: 8,
+                                  ),
+                              itemCount: matches.length,
+                              itemBuilder: (context, i) =>
+                                  CardMatch(match: matches[i]),
+                            )
+                          : ListView.builder(
+                              itemCount: matches.length,
+                              itemBuilder: (context, i) =>
+                                  CardMatch(match: matches[i]),
+                            ),
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
         ),
         const SizedBox(height: 12),
