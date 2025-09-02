@@ -72,7 +72,6 @@ class _MatchWeekViewState extends State<MatchWeekView> {
       }
     }
 
-    // Se non troviamo la settimana corrente (ad esempio se è prima di tutte)
     return 0;
   }
 
@@ -83,7 +82,7 @@ class _MatchWeekViewState extends State<MatchWeekView> {
         MediaQuery.of(context).orientation == Orientation.landscape;
 
     final headerStyle = TextStyle(
-      fontSize: isTabletLandscape ? 24 : 18, // più grande su tablet landscape
+      fontSize: isTabletLandscape ? 24 : 18, 
       fontWeight: FontWeight.bold,
     );
 

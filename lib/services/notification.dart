@@ -89,7 +89,6 @@ class NotificationService {
     required int matchId,
   }) async {
     final scheduledDate = tz.TZDateTime.from(datetime, tz.local);
-
     try {
       int id = math.Random().nextInt(10000);
       await notificationsPlugin.zonedSchedule(
