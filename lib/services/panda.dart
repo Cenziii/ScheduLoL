@@ -34,8 +34,9 @@ class PandaService {
     List<League>? leagues = await PandaService().getLeagues();
 
     if (leagues != null && leagues.isNotEmpty) {
-      
-      var strIds = await  SharedPreferencesService().getSharedPreferences('league_ids');
+      var strIds = await SharedPreferencesService().getSharedPreferences(
+        'league_ids',
+      );
 
       if (strIds != null && strIds.isNotEmpty) {
         List<int> orderIds = strIds.map(int.parse).toList();
@@ -49,7 +50,6 @@ class PandaService {
             positionMap[b.id] ?? orderIds.length,
           ),
         );
-        
       } else {
         List<String> temp = [];
         SharedPreferencesService().setSharedPreferences('league_ids', temp);
@@ -253,14 +253,34 @@ class PandaService {
           Serie serie = serieList.first;
 
           List<Tournament> tournaments = serie.tournaments;
-          var current_tournament = tournaments
+          DateTime now = DateTime.now();
+
+          // Calcolo inizio settimana (lunedì alle 00:00)
+          DateTime startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+          startOfWeek = DateTime(
+            startOfWeek.year,
+            startOfWeek.month,
+            startOfWeek.day,
+          );
+
+          // Calcolo fine settimana (domenica alle 23:59:59)
+          DateTime endOfWeek = startOfWeek.add(
+            Duration(days: 6, hours: 23, minutes: 59, seconds: 59),
+          );
+
+          // Filtra i tornei che hanno partite in questa settimana
+          var current_tournaments = tournaments
               .where(
                 (element) =>
-                    element.beginAt!.isBefore(DateTime.now()) &&
-                    element.endAt!.isAfter(DateTime.now()),
+                    element.endAt!.isAfter(
+                      startOfWeek,
+                    ) && // torneo non finito prima dell'inizio settimana
+                    element.beginAt!.isBefore(
+                      endOfWeek,
+                    ), // torneo iniziato prima della fine settimana
               )
               .toList();
-          return current_tournament;
+          return current_tournaments;
         } else {
           return null;
         }

@@ -55,8 +55,7 @@ class CardMatch extends StatelessWidget {
   void addNotificationsPastMatch(Match match) async {
     final prefs = await SharedPreferences.getInstance();
     List<String>? ids = prefs.getStringList('notify_ids');
-    if(ids != null)
-    {
+    if (ids != null) {
       ids.add(match.id.toString());
       prefs.setStringList('notify_ids', ids);
     }
@@ -138,12 +137,17 @@ class CardMatch extends StatelessWidget {
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                 ),
               ),
-              NotificationState(match: match, scheduleAt: scheduleAt, team1: team1, team2: team2 ),
+              NotificationState(
+                match: match,
+                scheduleAt: scheduleAt,
+                team1: team1,
+                team2: team2,
+              ),
 
               FittedBox(
                 child: Text(
-                  DateFormat('dd-MMM - HH:mm').format(scheduleAt),
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  DateFormat('dd-MMM HH:mm').format(scheduleAt),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
               ),
             ],
