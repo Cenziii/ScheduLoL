@@ -36,13 +36,43 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
       elevation: 1.0,
       centerTitle: true,
       leading: updateAvailable
-          ? IconButton(
-              icon: const Icon(Icons.download),
-              color: theme.colorScheme.surface,
-              tooltip: 'Download new .apk file',
-              onPressed: () => onDownloadPressed(apkUrl),
-            )
-          : null,
+    ? Stack(
+        clipBehavior: Clip.none,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.download),
+            color: theme.colorScheme.surface,
+            tooltip: 'Download new .apk file',
+            onPressed: () => onDownloadPressed(apkUrl),
+          ),
+          // Badge in alto a destra
+          Positioned(
+            right: 6,
+            top: 6,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              constraints: const BoxConstraints(
+                minWidth: 16,
+                minHeight: 16,
+              ),
+              child: const Text(
+                '1', // oppure vuoto "" se vuoi solo il pallino
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        ],
+      )
+    : null,
       iconTheme: IconThemeData(color: theme.colorScheme.onPrimary),
       actions: [
         IconButton(

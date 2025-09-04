@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lol_competitive/components/home_controller.dart';
 import 'package:lol_competitive/components/home_header.dart';
 import 'package:lol_competitive/components/league_selector.dart';
@@ -30,7 +31,7 @@ class _HomePageState extends State<HomePage> with HomeController<HomePage> {
             return Scaffold(
               appBar: HomeHeader(
                 theme: theme,
-                updateAvailable: updateAvailable,
+                updateAvailable: isUpdateAvailable,
                 apkUrl: apkUrl,
                 onDownloadPressed: launchURL,
               ),
@@ -77,7 +78,7 @@ class _HomePageState extends State<HomePage> with HomeController<HomePage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => SystemChannels.platform.invokeMethod('SystemNavigator.pop'),
             child: Text(
               'OK',
               style: theme.textTheme.labelLarge?.copyWith(

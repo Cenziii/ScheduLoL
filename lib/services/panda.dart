@@ -30,31 +30,35 @@ class PandaService {
     return true;
   }
 
-  Future<List<League>?> loadTournaments() async {
-    List<League>? leagues = await PandaService().getLeagues();
+  Future<List<League>?> loadListOfLeagues() async {
+    try {
+      List<League>? leagues = await PandaService().getLeagues();
 
-    if (leagues != null && leagues.isNotEmpty) {
-      var strIds = await SharedPreferencesService().getSharedPreferences(
-        'league_ids',
-      );
-
-      if (strIds != null && strIds.isNotEmpty) {
-        List<int> orderIds = strIds.map(int.parse).toList();
-
-        Map<int, int> positionMap = {
-          for (int i = 0; i < orderIds.length; i++) orderIds[i]: i,
-        };
-
-        leagues.sort(
-          (a, b) => (positionMap[a.id] ?? orderIds.length).compareTo(
-            positionMap[b.id] ?? orderIds.length,
-          ),
+      if (leagues != null && leagues.isNotEmpty) {
+        var strIds = await SharedPreferencesService().getSharedPreferences(
+          'league_ids',
         );
-      } else {
-        List<String> temp = [];
-        SharedPreferencesService().setSharedPreferences('league_ids', temp);
+
+        if (strIds != null && strIds.isNotEmpty) {
+          List<int> orderIds = strIds.map(int.parse).toList();
+
+          Map<int, int> positionMap = {
+            for (int i = 0; i < orderIds.length; i++) orderIds[i]: i,
+          };
+
+          leagues.sort(
+            (a, b) => (positionMap[a.id] ?? orderIds.length).compareTo(
+              positionMap[b.id] ?? orderIds.length,
+            ),
+          );
+        } else {
+          List<String> temp = [];
+          SharedPreferencesService().setSharedPreferences('league_ids', temp);
+        }
+        return leagues;
       }
-      return leagues;
+    } catch (ex) {
+      throw Exception('Error $ex');
     }
     return null;
   }
@@ -62,8 +66,7 @@ class PandaService {
   Future<List<League>?> getLeagues() async {
     final hasConnection = await checkConnection();
     if (!hasConnection) {
-      debugPrint('No network connection');
-      return null;
+      throw (Exception('No network connection'));
     }
     List<League> total_responses = [];
     List<League> current_result = [];
@@ -97,24 +100,18 @@ class PandaService {
             response.statusCode == 403 ||
             response.statusCode == 404 ||
             response.statusCode == 422) {
-          debugPrint('Response code ${response.body}');
-          return null;
+          throw Exception('Error -> Response code ${response.body}');
         } else {
-          debugPrint('Response code ${response.statusCode}');
-          return null;
+          throw Exception('Error -> Response code ${response.body}');
         }
       } on TimeoutException catch (_) {
-        debugPrint('Tournament Request timed out');
-        return null;
+        throw TimeoutException('Tournament Request timed out');
       } on SocketException catch (e) {
-        debugPrint('Network error while fetching $e');
-        return null;
-      } on FormatException catch (_) {
-        debugPrint('Invalid JSON format in BuildingInsights response');
-        return null;
+        throw SocketException('Network error while fetching $e');
+      } on FormatException catch (e) {
+        throw FormatException('Format exception error $e');
       } catch (e) {
-        debugPrint('Unexpected error in tournament: $e');
-        return null;
+        throw Exception('Unexpected error in leagues: $e');
       }
     }
     // Remove useless league
@@ -169,8 +166,7 @@ class PandaService {
   Future<Serie?> getSerie(int idLeague) async {
     final hasConnection = await checkConnection();
     if (!hasConnection) {
-      debugPrint('No network connection');
-      return null;
+      throw (Exception('No network connection'));
     }
 
     final url = Uri.parse(
@@ -200,32 +196,25 @@ class PandaService {
           response.statusCode == 403 ||
           response.statusCode == 404 ||
           response.statusCode == 422) {
-        debugPrint('Response code ${response.body}');
-        return null;
+        throw Exception('Error -> Response code ${response.body}');
       } else {
-        debugPrint('Response code ${response.statusCode}');
-        return null;
+        throw Exception('Error -> Response code ${response.body}');
       }
     } on TimeoutException catch (_) {
-      debugPrint('Tournament Request timed out');
-      return null;
-    } on SocketException catch (_) {
-      debugPrint('Network error while fetching past match');
-      return null;
-    } on FormatException catch (_) {
-      debugPrint('Invalid JSON format in past match response');
-      return null;
+      throw TimeoutException('Tournament Request timed out');
+    } on SocketException catch (e) {
+      throw SocketException('Network error while fetching $e');
+    } on FormatException catch (e) {
+      throw FormatException('Format exception error $e');
     } catch (e) {
-      debugPrint('Unexpected error in past match: $e');
-      return null;
+      throw Exception('Unexpected error in series: $e');
     }
   }
 
   Future<List<Tournament>?> getCurrentTournament(int idLeague) async {
     final hasConnection = await checkConnection();
     if (!hasConnection) {
-      debugPrint('No network connection');
-      return null;
+      throw (Exception('No network connection'));
     }
 
     final url = Uri.parse(
@@ -290,32 +279,25 @@ class PandaService {
           response.statusCode == 403 ||
           response.statusCode == 404 ||
           response.statusCode == 422) {
-        debugPrint('Response code ${response.body}');
-        return null;
+        throw Exception('Error -> Response code ${response.body}');
       } else {
-        debugPrint('Response code ${response.statusCode}');
-        return null;
+        throw Exception('Error -> Response code ${response.body}');
       }
     } on TimeoutException catch (_) {
-      debugPrint('Tournament Request timed out');
-      return null;
-    } on SocketException catch (_) {
-      debugPrint('Network error while fetching past match');
-      return null;
-    } on FormatException catch (_) {
-      debugPrint('Invalid JSON format in past match response');
-      return null;
+      throw TimeoutException('Tournament Request timed out');
+    } on SocketException catch (e) {
+      throw SocketException('Network error while fetching $e');
+    } on FormatException catch (e) {
+      throw FormatException('Format exception error $e');
     } catch (e) {
-      debugPrint('Unexpected error in past match: $e');
-      return null;
+      throw Exception('Unexpected error in current tournament: $e');
     }
   }
 
   Future<List<Match>> getMatches(String period, int idTournament) async {
     final hasConnection = await checkConnection();
     if (!hasConnection) {
-      debugPrint('No network connection');
-      return [];
+      throw (Exception('No network connection'));
     }
 
     final url = Uri.parse(
@@ -341,24 +323,18 @@ class PandaService {
           response.statusCode == 403 ||
           response.statusCode == 404 ||
           response.statusCode == 422) {
-        debugPrint('Response code ${response.body}');
-        return [];
+        throw Exception('Error -> Response code ${response.body}');
       } else {
-        debugPrint('Response code ${response.statusCode}');
-        return [];
+        throw Exception('Error -> Response code ${response.body}');
       }
     } on TimeoutException catch (_) {
-      debugPrint('Tournament Request timed out');
-      return [];
-    } on SocketException catch (_) {
-      debugPrint('Network error while fetching matches');
-      return [];
-    } on FormatException catch (_) {
-      debugPrint('Invalid JSON format in matches response');
-      return [];
+      throw TimeoutException('Tournament Request timed out');
+    } on SocketException catch (e) {
+      throw SocketException('Network error while fetching $e');
+    } on FormatException catch (e) {
+      throw FormatException('Format exception error $e');
     } catch (e) {
-      debugPrint('Unexpected error in tournament: $e');
-      return [];
+      throw Exception('Unexpected error in matches: $e');
     }
   }
 }

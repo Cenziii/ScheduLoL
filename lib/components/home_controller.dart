@@ -19,7 +19,7 @@ mixin HomeController<T extends StatefulWidget> on State<T> {
   ScrollController _scrollController = ScrollController();
   String apkUrl = '';
   String latestVersion = '';
-  bool updateAvailable = false;
+  bool _updateAvailable = false;
 
   bool get isError => _error;
   bool get isLoading => _isLoading;
@@ -28,6 +28,7 @@ mixin HomeController<T extends StatefulWidget> on State<T> {
   List<Match> get getAllMatches => _allMatches;
   int get selectedIndex => _selectedIndex;
   int get selectedLeagueId => _selectedLeagueId;
+  bool get isUpdateAvailable => _updateAvailable;
   PageController get pageController => _pageController;
   ScrollController get scrollController => _scrollController;
 
@@ -41,6 +42,12 @@ mixin HomeController<T extends StatefulWidget> on State<T> {
   set isLoading(bool value) {
     setState(() {
       _isLoading = value;
+    });
+  }
+
+  set updateAvailable(bool value) {
+    setState(() {
+      _updateAvailable = value;
     });
   }
 
@@ -94,11 +101,115 @@ mixin HomeController<T extends StatefulWidget> on State<T> {
   }
 
   void _init() async {
-    _checkUpdate();
-    await loadHomeData();
+    try {
+      await _checkUpdate();
+      await loadHomePage();
+    } catch (e) {
+      isError = true;
+      isLoading = false;
+      isLoadingSchedule = false;
+    }
   }
 
-  void _checkUpdate() async {
+  Future<void> loadHomePage() async {
+    try {
+      await loadChampionship();
+      if (_leagues.isNotEmpty) {
+        await currentLeagueSchedule(_leagues.first);
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> refreshLeagueSchedule() async {
+    await currentLeagueSchedule(_leagues.first);
+    setState(() {});
+  }
+
+  Future<void> loadChampionship() async {
+    try {
+      List<League>? leagues = await PandaService().loadListOfLeagues();
+      if (leagues != null) {
+        setState(() {
+          _leagues = leagues;
+          isLoading = false;
+          isError = false;
+        });
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    } on Exception catch (e) {
+      throw Exception('Error during init');
+    }
+  }
+
+  void onReorder(int oldIndex, int newIndex) {
+    setState(() {
+      final item = _leagues.removeAt(oldIndex);
+      _leagues.insert(newIndex, item);
+    });
+
+    SharedPreferencesService().setSharedPreferences(
+      'league_ids',
+      _leagues.map((item) => item.id.toString()).toList(),
+    );
+  }
+
+  Future<void> currentLeagueSchedule(League lg) async {
+    setState(() {
+      isLoadingSchedule = true;
+    });
+
+    _selectedLeagueId = lg.id;
+
+    _allMatches.clear();
+    try {
+      List<Tournament>? tournament = await PandaService().getCurrentTournament(
+        lg.id,
+      );
+      if (tournament != null) {
+        for (int i = 0; i < tournament.length; i++) {
+          final past = await PandaService().getMatches(
+            'past',
+            tournament[i].id!,
+          );
+          // check past notifications not deleted in shared preferences
+          SharedPreferencesService().checkNotificationsPastMatch(past);
+          final running = await PandaService().getMatches(
+            'running',
+            tournament[i].id!,
+          );
+          final upcoming = await PandaService().getMatches(
+            'upcoming',
+            tournament[i].id!,
+          );
+          _allMatches = [
+            ..._allMatches,
+            ...past,
+            ...running,
+            ...upcoming,
+          ].where((m) => m.beginAt != null).toList();
+        }
+      }
+    } catch (ex) {
+      setState(() {
+        isLoadingSchedule = false;
+        isError = true;
+        return;
+      });
+    }
+
+    setState(() {
+      isLoadingSchedule = false;
+      isError = false;
+    });
+    return;
+  }
+
+  Future<void> _checkUpdate() async {
     var update = await GitHubService().getCheckUpdates();
 
     if (update != null && mounted) {
@@ -107,9 +218,7 @@ mixin HomeController<T extends StatefulWidget> on State<T> {
         apkUrl = update[1];
         latestVersion = update[0];
       });
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        showUpdateDialog(context, update[0], update[1]);
-      });
+      
     } else if (mounted) {
       setState(() {
         updateAvailable = false;
@@ -148,84 +257,5 @@ mixin HomeController<T extends StatefulWidget> on State<T> {
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     }
-  }
-
-  Future<void> loadHomeData() async {
-    await loadTournaments();
-    if (_leagues.isNotEmpty) {
-      await currentLeagueSchedule(_leagues.first);
-    }
-  }
-
-  Future<void> refreshLeagueSchedule() async {
-    await currentLeagueSchedule(_leagues.first);
-    setState(() {});
-  }
-
-  Future<void> loadTournaments() async {
-    List<League>? leagues = await PandaService().loadTournaments();
-    if (leagues != null) {
-      setState(() {
-        _leagues = leagues;
-        _isLoading = false;
-        _error = false;
-      });
-    } else {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  void onReorder(int oldIndex, int newIndex) {
-    setState(() {
-      final item = _leagues.removeAt(oldIndex);
-      _leagues.insert(newIndex, item);
-    });
-
-    SharedPreferencesService().setSharedPreferences(
-      'league_ids',
-      _leagues.map((item) => item.id.toString()).toList(),
-    );
-  }
-
-  Future<void> currentLeagueSchedule(League lg) async {
-    setState(() {
-      _isLoadingSchedule = true;
-    });
-
-    _selectedLeagueId = lg.id;
-
-    _allMatches.clear();
-
-    List<Tournament>? tournament = await PandaService().getCurrentTournament(
-      lg.id,
-    );
-
-    if (tournament != null) {
-      for (int i = 0; i < tournament.length; i++) {
-        final past = await PandaService().getMatches('past', tournament[i].id!);
-        // check past notifications not deleted in shared preferences
-        SharedPreferencesService().checkNotificationsPastMatch(past);
-        final running = await PandaService().getMatches(
-          'running',
-          tournament[i].id!,
-        );
-        final upcoming = await PandaService().getMatches(
-          'upcoming',
-          tournament[i].id!,
-        );
-        _allMatches = [
-          ..._allMatches,
-          ...past,
-          ...running,
-          ...upcoming,
-        ].where((m) => m.beginAt != null).toList();
-      }
-    }
-
-    setState(() {
-      _isLoadingSchedule = false;
-    });
   }
 }

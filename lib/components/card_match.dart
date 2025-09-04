@@ -28,7 +28,6 @@ class CardMatch extends StatelessWidget {
     final liveAppUrl = Uri.parse('twitch://stream/$channel');
     final liveWebUrl = Uri.parse(stream.rawUrl!);
 
-    // Try to open the Twitch app
     if (await canLaunchUrl(liveAppUrl)) {
       await launchUrl(liveWebUrl);
     }
