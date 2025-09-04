@@ -236,7 +236,6 @@ class PandaService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
-        // Get Current Serie for that league
         var serieList = Serie.fromJsonList(data);
         if (serieList.isNotEmpty) {
           Serie serie = serieList.first;
@@ -244,7 +243,6 @@ class PandaService {
           List<Tournament> tournaments = serie.tournaments;
           DateTime now = DateTime.now();
 
-          // Calcolo inizio settimana (lunedì alle 00:00)
           DateTime startOfWeek = now.subtract(Duration(days: now.weekday - 1));
           startOfWeek = DateTime(
             startOfWeek.year,
@@ -252,21 +250,19 @@ class PandaService {
             startOfWeek.day,
           );
 
-          // Calcolo fine settimana (domenica alle 23:59:59)
           DateTime endOfWeek = startOfWeek.add(
             Duration(days: 6, hours: 23, minutes: 59, seconds: 59),
           );
 
-          // Filtra i tornei che hanno partite in questa settimana
           var current_tournaments = tournaments
               .where(
                 (element) =>
                     element.endAt!.isAfter(
                       startOfWeek,
-                    ) && // torneo non finito prima dell'inizio settimana
+                    ) && 
                     element.beginAt!.isBefore(
                       endOfWeek,
-                    ), // torneo iniziato prima della fine settimana
+                    ),
               )
               .toList();
           return current_tournaments;

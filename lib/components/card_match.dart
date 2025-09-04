@@ -96,7 +96,7 @@ class CardMatch extends StatelessWidget {
 
     String matchType = (match.matchType!.contains('best_of')) ? 'Bo' : '';
     String numberOfGames = match.numberOfGames!.toString();
-
+    String series = match.tournament!.name!;
     return Card(
       elevation: 8,
 
@@ -132,7 +132,7 @@ class CardMatch extends StatelessWidget {
             children: [
               FittedBox(
                 child: Text(
-                  '$matchType$numberOfGames',
+                  '$series - $matchType$numberOfGames',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                 ),
               ),
