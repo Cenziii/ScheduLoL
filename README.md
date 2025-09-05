@@ -24,6 +24,7 @@ An Android app built with Flutter that allows you to follow competitive League o
 - External APIs: For fetching tournament schedules and information.
 
 ## 📸 Screenshot
+![match_notification](https://github.com/user-attachments/assets/778ad434-a9ca-491d-80a4-01f8971fcdd1) ![order_tournament](https://github.com/user-attachments/assets/21b9ed6a-8826-4b5d-9c64-f9b204822bd3)
 
 ## 📄 License
 
