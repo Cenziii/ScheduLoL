@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lol_competitive/components/home_controller.dart';
@@ -14,19 +15,24 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with HomeController<HomePage> {
+  // Dispose method to clean up resources when the widget is disposed
   @override
   void dispose() {
     pageController.dispose();
+    scrollController.dispose();
     super.dispose();
   }
 
+  // Build method to construct the UI of the HomePage
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    // Check if there's an error or loading state
     if (!isError && !isLoading) {
       return ResponsiveBuilder(
         builder: (_, sizingInfo) {
+          // Build mobile and tablet layouts
           if (sizingInfo.isMobile || sizingInfo.isTablet) {
             return Scaffold(
               appBar: HomeHeader(
@@ -39,29 +45,31 @@ class _HomePageState extends State<HomePage> with HomeController<HomePage> {
                 children: [
                   SizedBox(height: 5),
                   LeagueSelector(
-                    leagues: getLeagues,
-                    selectedLeagueId: selectedLeagueId,
-                    onReorder: onReorder,
-                    onLeagueTap: (lg) => currentLeagueSchedule(lg),
+                    leagues: getLeagues, // List of leagues
+                    selectedLeagueId: selectedLeagueId, // Currently selected league ID
+                    onReorder: onReorder, // Callback for reordering leagues
+                    onLeagueTap: (lg) => currentLeagueSchedule(lg), // Callback when a league is tapped
                   ),
                   const SizedBox(height: 2),
                   Expanded(
                     child: isLoadingSchedule
-                        ? const Center(child: CircularProgressIndicator())
+                        ? const Center(child: CircularProgressIndicator()) // Loading indicator while fetching schedule
                         : MatchWeekView(
-                            allMatches: getAllMatches,
-                            onRefresh: refreshLeagueSchedule,
+                            allMatches: getAllMatches, // List of all matches
+                            onRefresh: refreshLeagueSchedule, // Callback to refresh the league schedule
                           ),
                   ),
                 ],
               ),
             );
           } else {
-            return const Placeholder();
+            return const Placeholder(); // Placeholder for desktop layout (not implemented)
           }
         },
       );
-    } else if (isError) {
+    } 
+    // Handle error state
+    else if (isError) {
       return AlertDialog(
         backgroundColor: theme.colorScheme.surface,
         title: Text(
@@ -88,9 +96,21 @@ class _HomePageState extends State<HomePage> with HomeController<HomePage> {
           ),
         ],
       );
-    } else {
+    } 
+    // Handle loading state
+    else {
       return Center(
-        child: CircularProgressIndicator(color: theme.colorScheme.primary),
+        child: CachedNetworkImage(
+          imageUrl: "https://media.tenor.com/-O9a6WKx4uAAAAAi/league-of-legends-league-of-legends-alistar.gif",
+          width: 150,
+          height: 150,
+          placeholder: (context, url) => SizedBox(
+            width: 40,
+            height: 40,
+            child: CircularProgressIndicator(),
+          ),
+          errorWidget: (context, url, error) => Icon(Icons.error),
+        ),
       );
     }
   }

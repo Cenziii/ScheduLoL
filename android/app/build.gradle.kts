@@ -5,6 +5,16 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+import java.util.Properties
+import java.io.FileInputStream
+
+val keystoreProperties = Properties().apply {
+    val file = rootProject.file("key.properties")
+    if (file.exists()) {
+        load(FileInputStream(file))
+    }
+}
+
 android {
     namespace = "com.example.lol_competitive"
     compileSdk = flutter.compileSdkVersion
@@ -34,13 +44,13 @@ android {
 
     signingConfigs {
         create("release") {
-            keyAlias = "lol_competitive"
-            keyPassword = "G9RpodQhwY6iq1oR2042"
-            storeFile = file("key.jks")
-            storePassword = "G9RpodQhwY6iq1oR2042"
+            storeFile = (keystoreProperties["storeFile"] as String?)?.let { file(it) }
+            storePassword = keystoreProperties["storePassword"] as String?
+            keyAlias = keystoreProperties["keyAlias"] as String?
+            keyPassword = keystoreProperties["keyPassword"] as String?
         }
     }
-
+    
     buildTypes {
         getByName("release") {
             isMinifyEnabled = true

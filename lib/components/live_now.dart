@@ -19,7 +19,7 @@ class _LiveNowWidgetState extends State<LiveNowWidget>
     _controller = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
-    )..repeat(reverse: true); // fa lampeggiare
+    )..repeat(reverse: true); 
 
     _opacityAnimation = Tween<double>(
       begin: 1.0,

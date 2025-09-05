@@ -11,25 +11,28 @@ import 'package:url_launcher/url_launcher.dart';
 class CardMatch extends StatelessWidget {
   final Match match;
 
+  // Constructor for the CardMatch widget
   const CardMatch({super.key, required this.match});
 
+  // Method to get team name based on opponent details
   String getTeamName(Team opponent) {
     if (opponent.acronym != null) {
-      return opponent.acronym!;
+      return opponent.acronym!; // Return acronym if available
     } else if (opponent.name != null && opponent.name!.length >= 3) {
-      return opponent.name!.replaceAll(' ', '').substring(1, 3);
+      return opponent.name!.replaceAll(' ', '').substring(1, 3); // Use first two characters of name if acronym is not available
     } else {
-      return 'TBD';
+      return 'TBD'; // Return 'To Be Determined' if neither acronym nor name is available
     }
   }
 
+  // Method to launch live stream in either app or web
   Future<void> launchLive(StreamsList stream) async {
-    String channel = stream.rawUrl!.split('/').last;
-    final liveAppUrl = Uri.parse('twitch://stream/$channel');
-    final liveWebUrl = Uri.parse(stream.rawUrl!);
+    String channel = stream.rawUrl!.split('/').last; // Extract channel from raw URL
+    final liveAppUrl = Uri.parse('twitch://stream/$channel'); // Create URI for Twitch app
+    final liveWebUrl = Uri.parse(stream.rawUrl!); // Create URI for web
 
     if (await canLaunchUrl(liveAppUrl)) {
-      await launchUrl(liveWebUrl);
+      await launchUrl(liveWebUrl); // Launch in app if available, otherwise fallback to web
     }
     // Fallback to browser
     else if (await canLaunchUrl(liveWebUrl)) {
@@ -40,23 +43,25 @@ class CardMatch extends StatelessWidget {
     }
   }
 
+  // Method to check if a notification ID exists in SharedPreferences
   Future<bool> checkNotification(int id) async {
     final prefs = await SharedPreferences.getInstance();
-    List<String>? ids = prefs.getStringList('notify_ids');
+    List<String>? ids = prefs.getStringList('notify_ids'); // Get list of notification IDs from SharedPreferences
     if (ids != null) {
-      bool result = ids.any((item) => int.parse(item) == id);
+      bool result = ids.any((item) => int.parse(item) == id); // Check if the given ID exists in the list
       return result;
     } else {
-      return false;
+      return false; // Return false if no IDs are found
     }
   }
 
+  // Method to add a notification ID to SharedPreferences
   void addNotificationsPastMatch(Match match) async {
     final prefs = await SharedPreferences.getInstance();
-    List<String>? ids = prefs.getStringList('notify_ids');
+    List<String>? ids = prefs.getStringList('notify_ids'); // Get list of notification IDs from SharedPreferences
     if (ids != null) {
-      ids.add(match.id.toString());
-      prefs.setStringList('notify_ids', ids);
+      ids.add(match.id.toString()); // Add the current match ID to the list
+      prefs.setStringList('notify_ids', ids); // Save the updated list back to SharedPreferences
     }
   }
 
@@ -97,6 +102,7 @@ class CardMatch extends StatelessWidget {
     String matchType = (match.matchType!.contains('best_of')) ? 'Bo' : '';
     String numberOfGames = match.numberOfGames!.toString();
     String series = match.tournament!.name!;
+
     return Card(
       elevation: 8,
 
@@ -141,7 +147,7 @@ class CardMatch extends StatelessWidget {
                 scheduleAt: scheduleAt,
                 team1: team1,
                 team2: team2,
-              ),
+              ), // Custom widget to display notification state
 
               FittedBox(
                 child: Text(
@@ -172,7 +178,7 @@ class CardMatch extends StatelessWidget {
               fit: BoxFit.cover,
               placeholder: (context, url) =>
                   CircularProgressIndicator(color: theme.colorScheme.primary),
-              errorWidget: (context, url, error) => const Icon(Icons.group),
+              errorWidget: (context, url, error) => const Icon(Icons.group), // Default icon if image fails to load
             ),
           ),
           const SizedBox(width: 12),

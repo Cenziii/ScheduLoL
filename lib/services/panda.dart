@@ -12,16 +12,24 @@ import 'package:lol_competitive/classes/tournament.dart';
 import 'package:lol_competitive/services/shared_prefs.dart';
 
 class PandaService {
+  // Private constructor to prevent instantiation from outside
   PandaService._privateConstructor();
 
+  // Singleton instance of the class
   static final PandaService _instance = PandaService._privateConstructor();
+  
+  // API key for authentication with the Pandascore API
   final apiKey = dotenv.env['PANDA_API_KEY'];
+  
+  // Base URL for the Pandascore API
   final baseUrl = 'https://api.pandascore.co/lol/';
 
+  // Factory method to get the singleton instance of PandaService
   factory PandaService() {
     return _instance;
   }
 
+  // Method to check if there is a network connection
   Future<bool> checkConnection() async {
     final connectivity = await Connectivity().checkConnectivity();
     if (connectivity.contains(ConnectivityResult.none)) {
@@ -30,6 +38,7 @@ class PandaService {
     return true;
   }
 
+  // Method to load a list of leagues from the Pandascore API
   Future<List<League>?> loadListOfLeagues() async {
     try {
       List<League>? leagues = await PandaService().getLeagues();
@@ -63,6 +72,7 @@ class PandaService {
     return null;
   }
 
+  // Method to fetch a list of leagues from the Pandascore API
   Future<List<League>?> getLeagues() async {
     final hasConnection = await checkConnection();
     if (!hasConnection) {
@@ -114,6 +124,7 @@ class PandaService {
         throw Exception('Unexpected error in leagues: $e');
       }
     }
+
     // Remove useless league
     DateTime dateToTest = DateTime.now();
 
@@ -142,8 +153,8 @@ class PandaService {
       new_ordered_leagues.add(total_responses[lta_index]);
       for (int i = 0; i < total_responses.length; i++) {
         if (total_responses[i].imageUrl != null) {
-          final urlThumb = total_responses[i].imageUrl!.split("/");
-          var addThumb = "thumb_${urlThumb.last}";
+          final urlThumb = total_responses[i].imageUrl!.split("/"); // Split URL to get the last part
+          var addThumb = "thumb_${urlThumb.last}"; // Create new thumbnail name
           total_responses[i].imageUrl = total_responses[i].imageUrl!.replaceAll(
             urlThumb.last,
             addThumb,
@@ -163,6 +174,7 @@ class PandaService {
     }
   }
 
+  // Method to fetch a specific series from the Pandascore API
   Future<Serie?> getSerie(int idLeague) async {
     final hasConnection = await checkConnection();
     if (!hasConnection) {
@@ -211,12 +223,14 @@ class PandaService {
     }
   }
 
+  // Method to fetch the current tournament from the Pandascore API
   Future<List<Tournament>?> getCurrentTournament(int idLeague) async {
     final hasConnection = await checkConnection();
     if (!hasConnection) {
       throw (Exception('No network connection'));
     }
 
+    // Constructing the URL to fetch the current tournament for a specific league
     final url = Uri.parse(
       '${baseUrl}series/running?filter[league_id]=$idLeague',
     );
@@ -234,8 +248,10 @@ class PandaService {
           .timeout(const Duration(seconds: 20));
 
       if (response.statusCode == 200) {
+        // Decoding the JSON response
         final data = jsonDecode(response.body);
 
+        // Getting the current tournament from the list of tournaments
         var serieList = Serie.fromJsonList(data);
         if (serieList.isNotEmpty) {
           Serie serie = serieList.first;
@@ -243,6 +259,7 @@ class PandaService {
           List<Tournament> tournaments = serie.tournaments;
           DateTime now = DateTime.now();
 
+          // Calcolo inizio settimana (lunedì alle 00:00)
           DateTime startOfWeek = now.subtract(Duration(days: now.weekday - 1));
           startOfWeek = DateTime(
             startOfWeek.year,
@@ -250,19 +267,21 @@ class PandaService {
             startOfWeek.day,
           );
 
+          // Calcolo fine settimana (domenica alle 23:59:59)
           DateTime endOfWeek = startOfWeek.add(
             Duration(days: 6, hours: 23, minutes: 59, seconds: 59),
           );
 
+          // Filtra i tornei che hanno partite in questa settimana
           var current_tournaments = tournaments
               .where(
                 (element) =>
                     element.endAt!.isAfter(
                       startOfWeek,
-                    ) && 
+                    ) && // torneo non finito prima dell'inizio settimana
                     element.beginAt!.isBefore(
                       endOfWeek,
-                    ),
+                    ), // torneo iniziato prima della fine settimana
               )
               .toList();
           return current_tournaments;
@@ -290,6 +309,7 @@ class PandaService {
     }
   }
 
+  // Method to fetch the current tournament from the Pandascore API
   Future<List<Match>> getMatches(String period, int idTournament) async {
     final hasConnection = await checkConnection();
     if (!hasConnection) {

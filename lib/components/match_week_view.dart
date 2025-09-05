@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -8,6 +9,7 @@ import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 class MatchWeekView extends StatefulWidget {
   final List<Match> allMatches;
   final Future<void> Function() onRefresh;
+
   const MatchWeekView({
     super.key,
     required this.allMatches,
@@ -25,12 +27,18 @@ class _MatchWeekViewState extends State<MatchWeekView> {
   late List<DateTime> weekStartDates;
 
   @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
   void initState() {
     super.initState();
     grouped = groupMatchesByWeek(widget.allMatches);
     weekStartDates = grouped.keys.toList()..sort();
 
-    // Scroll alla settimana corrente
+    // Scroll to the current week
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && weekStartDates.isNotEmpty) {
         final index = indexOfCurrentWeek();
@@ -39,6 +47,7 @@ class _MatchWeekViewState extends State<MatchWeekView> {
     });
   }
 
+  // Group matches by week
   Map<DateTime, List<Match>> groupMatchesByWeek(List<Match> matches) {
     matches.sort((a, b) {
       if (a.beginAt == null && b.beginAt == null) return 0;
@@ -59,6 +68,7 @@ class _MatchWeekViewState extends State<MatchWeekView> {
     });
   }
 
+  // Find the index of the current week
   int indexOfCurrentWeek() {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -87,7 +97,25 @@ class _MatchWeekViewState extends State<MatchWeekView> {
     );
 
     if (weekStartDates.isEmpty) {
-      return const Center(child: Text("No matches available"));
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            const Text("No matches available"),
+            CachedNetworkImage(
+              imageUrl: "https://media.tenor.com/W_GgSsF7x9sAAAAi/amumu-sad.gif",
+              width: 150,
+              height: 150,
+              placeholder: (context, url) => SizedBox(
+                width: 40,
+                height: 40,
+                child: CircularProgressIndicator(),
+              ),
+              errorWidget: (context, url, error) => Icon(Icons.error),
+            ),
+          ],
+        ),
+      );
     }
 
     return Column(

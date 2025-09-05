@@ -4,8 +4,10 @@ import 'package:url_launcher/url_launcher.dart';
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
 
+  // URL to buy me a coffee
   final String _buyMeACoffeeUrl = "https://buymeacoffee.com/cenziii";
 
+  // Method to launch the URL in an external application
   Future<void> _launchURL(String url) async {
     final Uri uri = Uri.parse(url);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
@@ -13,9 +15,11 @@ class AboutPage extends StatelessWidget {
     }
   }
 
+  // Build method to construct the UI of the AboutPage
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
