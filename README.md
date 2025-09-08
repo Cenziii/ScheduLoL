@@ -1,6 +1,6 @@
 # 🕹️ LoL Schedule 🕹️
 
-An Android app built with Flutter that allows you to follow competitive League of Legends tournament schedules in real-time, with customizable notifications and support for smartphones, tablets, and Wear OS smartwatches.
+An Android app built with Flutter that allows you to follow competitive League of Legends tournament schedules in real-time, with customizable notifications and support for smartphones and tablets.
 
 
 ## 📱 Main Features
@@ -13,7 +13,7 @@ An Android app built with Flutter that allows you to follow competitive League o
 
 - Live Notifications: Receive alerts for live matches and access the streaming channel directly.
 
-- Multi-Device Support: Compatible with smartphones, tablets, and Wear OS smartwatches.
+- Multi-Device Support: Compatible with smartphones and tablets.
 
 ## 🛠️ Technologies
 
@@ -24,16 +24,7 @@ An Android app built with Flutter that allows you to follow competitive League o
 - External APIs: For fetching tournament schedules and information.
 
 ## 📸 Screenshot
-
-## ✅ To Do
-Implementare le notifiche per le partite future.
-
-- Implement notifications for upcoming matches.
-
-- Add support for additional languages.
-
-- Optimize the user interface for devices with different screen sizes.
-
+![match_notification](https://github.com/user-attachments/assets/778ad434-a9ca-491d-80a4-01f8971fcdd1) ![order_tournament](https://github.com/user-attachments/assets/21b9ed6a-8826-4b5d-9c64-f9b204822bd3)
 
 ## 📄 License
 
