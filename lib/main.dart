@@ -14,6 +14,7 @@ void main() async {
 
   await NotificationService().initNotification();
   requestNotificationPermission();
+
   runApp(const MyApp());
 }
 
@@ -30,9 +31,10 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    ThemeMode themeMode = ThemeMode.light;
+    ThemeMode themeMode = ThemeMode.system;
 
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'ScheduLoL',
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,

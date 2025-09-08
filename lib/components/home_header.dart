@@ -18,6 +18,7 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
+      
       title: Text(
         'ScheduLoL',
         style: theme.textTheme.titleLarge?.copyWith(

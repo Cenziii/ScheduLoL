@@ -42,8 +42,9 @@ class LeagueSelector extends StatelessWidget {
                   height: 60,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
+                    color: Color(0xFFF8FAFC),
                     border: Border.all(
-                      color: isSelected ? Colors.red : Colors.black,
+                      color: isSelected ? theme.colorScheme.error : theme.colorScheme.outline,
                       width: 4,
                     ),
                   ),

@@ -104,24 +104,36 @@ class CardMatch extends StatelessWidget {
     String series = match.tournament!.name!;
 
     return Card(
-      elevation: 8,
-
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      elevation: 10,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+        side: BorderSide(
+          color: theme.colorScheme.onSurfaceVariant, 
+          width: 0.5, 
+        ),
+      ),
       clipBehavior: Clip.antiAlias,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           const SizedBox(width: 12),
 
-          SizedBox(
+          Container(
             width: 50,
             height: 50,
-            child: CachedNetworkImage(
-              imageUrl: logoTeam1,
-              fit: BoxFit.cover,
-              placeholder: (context, url) =>
-                  CircularProgressIndicator(color: theme.colorScheme.primary),
-              errorWidget: (context, url, error) => const Icon(Icons.group),
+            decoration: BoxDecoration(
+              color: Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(10), // Angoli smussati
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10), // Ritaglia l'immagine con gli stessi angoli
+              child: CachedNetworkImage(
+                imageUrl: logoTeam1,
+                fit: BoxFit.cover,
+                placeholder: (context, url) =>
+                    CircularProgressIndicator(color: theme.colorScheme.primary),
+                errorWidget: (context, url, error) => const Icon(Icons.group),
+              ),
             ),
           ),
           Expanded(
@@ -170,15 +182,22 @@ class CardMatch extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          SizedBox(
+         Container(
             width: 50,
             height: 50,
-            child: CachedNetworkImage(
-              imageUrl: logoTeam2,
-              fit: BoxFit.cover,
-              placeholder: (context, url) =>
-                  CircularProgressIndicator(color: theme.colorScheme.primary),
-              errorWidget: (context, url, error) => const Icon(Icons.group), // Default icon if image fails to load
+            decoration: BoxDecoration(
+              color: Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(10), // Angoli smussati
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10), // Ritaglia l'immagine con gli stessi angoli
+              child: CachedNetworkImage(
+                imageUrl: logoTeam2,
+                fit: BoxFit.cover,
+                placeholder: (context, url) =>
+                    CircularProgressIndicator(color: theme.colorScheme.primary),
+                errorWidget: (context, url, error) => const Icon(Icons.group),
+              ),
             ),
           ),
           const SizedBox(width: 12),

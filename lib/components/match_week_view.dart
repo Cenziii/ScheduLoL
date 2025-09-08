@@ -82,7 +82,7 @@ class _MatchWeekViewState extends State<MatchWeekView> {
       }
     }
 
-    return 0;
+    return weekStartDates.length - 1;
   }
 
   @override

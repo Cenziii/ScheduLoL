@@ -43,57 +43,59 @@ class AboutPage extends StatelessWidget {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Image.asset(
-              "assets/icon/League_Displays_Icon.png",
-              width: 80,
-              height: 80,
-              fit: BoxFit.cover,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              "ScheduLoL",
-              style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              "This app is developed with ❤️ .\n\n"
-              "If you want to support me, buy me a coffee!",
-              textAlign: TextAlign.center,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontSize: 18,
-                fontWeight: FontWeight.normal,
-                color: theme.colorScheme.primary,
+        child: Center(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Image.asset(
+                "assets/icon/League_Displays_Icon.png",
+                width: 80,
+                height: 80,
+                fit: BoxFit.cover,
               ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
+              const SizedBox(height: 16),
+              const Text(
+                "ScheduLoL",
+                style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
               ),
-              icon: const Icon(Icons.local_cafe),
-              label: Text(
-                "Buy Me a Coffee",
+              const SizedBox(height: 20),
+              Text(
+                "This app is developed with ❤️ .\n\n"
+                "If you want to support me, buy me a coffee!",
+                textAlign: TextAlign.center,
                 style: theme.textTheme.titleLarge?.copyWith(
-                  fontSize: 23,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 18,
+                  fontWeight: FontWeight.normal,
                   color: theme.colorScheme.primary,
                 ),
               ),
-              onPressed: () => _launchURL(_buyMeACoffeeUrl),
-            ),
-            const SizedBox(height: 20),
-          ],
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                ),
+                icon: const Icon(Icons.local_cafe),
+                label: Text(
+                  "Buy Me a Coffee",
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontSize: 23,
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                onPressed: () => _launchURL(_buyMeACoffeeUrl),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );

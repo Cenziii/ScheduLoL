@@ -34,32 +34,34 @@ class _HomePageState extends State<HomePage> with HomeController<HomePage> {
         builder: (_, sizingInfo) {
           // Build mobile and tablet layouts
           if (sizingInfo.isMobile || sizingInfo.isTablet) {
-            return Scaffold(
-              appBar: HomeHeader(
-                theme: theme,
-                updateAvailable: isUpdateAvailable,
-                apkUrl: apkUrl,
-                onDownloadPressed: launchURL,
-              ),
-              body: Column(
-                children: [
-                  SizedBox(height: 5),
-                  LeagueSelector(
-                    leagues: getLeagues, // List of leagues
-                    selectedLeagueId: selectedLeagueId, // Currently selected league ID
-                    onReorder: onReorder, // Callback for reordering leagues
-                    onLeagueTap: (lg) => currentLeagueSchedule(lg), // Callback when a league is tapped
-                  ),
-                  const SizedBox(height: 2),
-                  Expanded(
-                    child: isLoadingSchedule
-                        ? const Center(child: CircularProgressIndicator()) // Loading indicator while fetching schedule
-                        : MatchWeekView(
-                            allMatches: getAllMatches, // List of all matches
-                            onRefresh: refreshLeagueSchedule, // Callback to refresh the league schedule
-                          ),
-                  ),
-                ],
+            return SafeArea(
+              child: Scaffold(
+                appBar: HomeHeader(
+                  theme: theme,
+                  updateAvailable: isUpdateAvailable,
+                  apkUrl: apkUrl,
+                  onDownloadPressed: launchURL,
+                ),
+                body: Column(
+                  children: [
+                    SizedBox(height: 5),
+                    LeagueSelector(
+                      leagues: getLeagues, // List of leagues
+                      selectedLeagueId: selectedLeagueId, // Currently selected league ID
+                      onReorder: onReorder, // Callback for reordering leagues
+                      onLeagueTap: (lg) => currentLeagueSchedule(lg), // Callback when a league is tapped
+                    ),
+                    const SizedBox(height: 2),
+                    Expanded(
+                      child: isLoadingSchedule
+                          ? const Center(child: CircularProgressIndicator()) // Loading indicator while fetching schedule
+                          : MatchWeekView(
+                              allMatches: getAllMatches, // List of all matches
+                              onRefresh: refreshLeagueSchedule, // Callback to refresh the league schedule
+                            ),
+                    ),
+                  ],
+                ),
               ),
             );
           } else {

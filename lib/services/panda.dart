@@ -1,9 +1,8 @@
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:dio/dio.dart';
+import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'dart:async';
 import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:lol_competitive/classes/league.dart';
 import 'package:lol_competitive/classes/match.dart';
@@ -28,6 +27,39 @@ class PandaService {
   factory PandaService() {
     return _instance;
   }
+
+  // Global options
+  final options = CacheOptions(
+    // A default store is required for interceptor.
+    store: MemCacheStore(),
+    // Default.
+    policy: CachePolicy.request,
+    // Returns a cached response on error for given status codes.
+    // Defaults to `[]`.
+    hitCacheOnErrorCodes: const [400,401,403,404,422,500],
+    // Allows to return a cached response on network errors (e.g. offline usage).
+    // Defaults to `false`.
+    hitCacheOnNetworkFailure: true,
+    // Overrides any HTTP directive to delete entry past this duration.
+    // Useful only when origin server has no cache config or custom behaviour is desired.
+    // Defaults to `null`.
+    maxStale: const Duration(minutes: 10),
+    // Default. Allows 3 cache sets and ease cleanup.
+    priority: CachePriority.normal,
+    // Default. Body and headers encryption with your own algorithm.
+    cipher: null,
+    // Default. Key builder to retrieve requests.
+    keyBuilder: CacheOptions.defaultCacheKeyBuilder,
+    // Default. Allows to cache POST requests.
+    // Assigning a [keyBuilder] is strongly recommended when `true`.
+    allowPostMethod: false,
+  );
+
+   late final Dio dio = Dio()
+    ..interceptors.add(DioCacheInterceptor(options: options))
+    ..options.headers['Content-Type'] = 'application/json'
+    ..options.headers['Accept'] = 'application/json'
+    ..options.headers['Authorization'] = 'Bearer ${PandaService().apiKey}';
 
   // Method to check if there is a network connection
   Future<bool> checkConnection() async {
@@ -90,19 +122,15 @@ class PandaService {
       );
 
       try {
-        final response = await http
-            .get(
+        final response = await dio
+            .getUri(
               url,
-              headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Authorization': 'Bearer $apiKey',
-              },
+              options: options.copyWith(policy: CachePolicy.forceCache).toOptions(),
             )
             .timeout(const Duration(seconds: 20));
 
         if (response.statusCode == 200) {
-          final data = jsonDecode(response.body);
+          final data = response.data;
           current_result = League.fromJsonList(data);
           total_responses = List.from(total_responses)..addAll(current_result);
         } else if (response.statusCode == 400 ||
@@ -110,9 +138,9 @@ class PandaService {
             response.statusCode == 403 ||
             response.statusCode == 404 ||
             response.statusCode == 422) {
-          throw Exception('Error -> Response code ${response.body}');
+          throw Exception('Error -> Response code ${response.data}');
         } else {
-          throw Exception('Error -> Response code ${response.body}');
+          throw Exception('Error -> Response code ${response.data}');
         }
       } on TimeoutException catch (_) {
         throw TimeoutException('Tournament Request timed out');
@@ -126,7 +154,7 @@ class PandaService {
     }
 
     // Remove useless league
-    DateTime dateToTest = DateTime.now();
+    DateTime dateToTest = DateTime.now().add(Duration(days: -7));
 
     total_responses = total_responses.where((league) {
       return league.series.any((s) => s.endAt!.isAfter(dateToTest));
@@ -174,140 +202,89 @@ class PandaService {
     }
   }
 
-  // Method to fetch a specific series from the Pandascore API
-  Future<Serie?> getSerie(int idLeague) async {
-    final hasConnection = await checkConnection();
-    if (!hasConnection) {
-      throw (Exception('No network connection'));
-    }
-
-    final url = Uri.parse(
-      '${baseUrl}series/running?filter[league_id]=$idLeague',
-    );
-
-    try {
-      final response = await http
-          .get(
-            url,
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              'Authorization': 'Bearer $apiKey',
-            },
-          )
-          .timeout(const Duration(seconds: 20));
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-
-        // Get Current Serie for that league
-        Serie serie = Serie.fromJson(data);
-        return serie;
-      } else if (response.statusCode == 400 ||
-          response.statusCode == 401 ||
-          response.statusCode == 403 ||
-          response.statusCode == 404 ||
-          response.statusCode == 422) {
-        throw Exception('Error -> Response code ${response.body}');
-      } else {
-        throw Exception('Error -> Response code ${response.body}');
-      }
-    } on TimeoutException catch (_) {
-      throw TimeoutException('Tournament Request timed out');
-    } on SocketException catch (e) {
-      throw SocketException('Network error while fetching $e');
-    } on FormatException catch (e) {
-      throw FormatException('Format exception error $e');
-    } catch (e) {
-      throw Exception('Unexpected error in series: $e');
-    }
+  // Method to fetch all series for a league from the Pandascore API
+Future<List<Serie>> getSeries(int idLeague) async {
+  final hasConnection = await checkConnection();
+  if (!hasConnection) {
+    throw Exception('No network connection');
   }
 
-  // Method to fetch the current tournament from the Pandascore API
-  Future<List<Tournament>?> getCurrentTournament(int idLeague) async {
-    final hasConnection = await checkConnection();
-    if (!hasConnection) {
-      throw (Exception('No network connection'));
+  final url = Uri.parse('${baseUrl}series?filter[league_id]=$idLeague');
+
+  try {
+    final response = await dio.getUri(
+      url,
+      options: options.copyWith(policy: CachePolicy.refresh).toOptions(),
+    ).timeout(const Duration(seconds: 20));
+
+    if (response.statusCode == 200) {
+      final data = response.data;
+      return Serie.fromJsonList(data);
+    } else {
+      throw Exception('Error -> Response code ${response.data}');
     }
-
-    // Constructing the URL to fetch the current tournament for a specific league
-    final url = Uri.parse(
-      '${baseUrl}series/running?filter[league_id]=$idLeague',
-    );
-
-    try {
-      final response = await http
-          .get(
-            url,
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              'Authorization': 'Bearer $apiKey',
-            },
-          )
-          .timeout(const Duration(seconds: 20));
-
-      if (response.statusCode == 200) {
-        // Decoding the JSON response
-        final data = jsonDecode(response.body);
-
-        // Getting the current tournament from the list of tournaments
-        var serieList = Serie.fromJsonList(data);
-        if (serieList.isNotEmpty) {
-          Serie serie = serieList.first;
-
-          List<Tournament> tournaments = serie.tournaments;
-          DateTime now = DateTime.now();
-
-          // Calcolo inizio settimana (lunedì alle 00:00)
-          DateTime startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-          startOfWeek = DateTime(
-            startOfWeek.year,
-            startOfWeek.month,
-            startOfWeek.day,
-          );
-
-          // Calcolo fine settimana (domenica alle 23:59:59)
-          DateTime endOfWeek = startOfWeek.add(
-            Duration(days: 6, hours: 23, minutes: 59, seconds: 59),
-          );
-
-          // Filtra i tornei che hanno partite in questa settimana
-          var current_tournaments = tournaments
-              .where(
-                (element) =>
-                    element.endAt!.isAfter(
-                      startOfWeek,
-                    ) && // torneo non finito prima dell'inizio settimana
-                    element.beginAt!.isBefore(
-                      endOfWeek,
-                    ), // torneo iniziato prima della fine settimana
-              )
-              .toList();
-          return current_tournaments;
-        } else {
-          return null;
-        }
-        // Get current tournament for that league's serie
-      } else if (response.statusCode == 400 ||
-          response.statusCode == 401 ||
-          response.statusCode == 403 ||
-          response.statusCode == 404 ||
-          response.statusCode == 422) {
-        throw Exception('Error -> Response code ${response.body}');
-      } else {
-        throw Exception('Error -> Response code ${response.body}');
-      }
-    } on TimeoutException catch (_) {
-      throw TimeoutException('Tournament Request timed out');
-    } on SocketException catch (e) {
-      throw SocketException('Network error while fetching $e');
-    } on FormatException catch (e) {
-      throw FormatException('Format exception error $e');
-    } catch (e) {
-      throw Exception('Unexpected error in current tournament: $e');
-    }
+  } on TimeoutException catch (_) {
+    throw TimeoutException('Series request timed out');
+  } on SocketException catch (e) {
+    throw SocketException('Network error while fetching series: $e');
+  } on FormatException catch (e) {
+    throw FormatException('Format exception error $e');
+  } catch (e) {
+    throw Exception('Unexpected error in series: $e');
   }
+}
+
+  // Method to fetch the current or last relevant tournaments from the Pandascore API
+Future<List<Tournament>> getCurrentTournament(int idLeague) async {
+  final hasConnection = await checkConnection();
+  if (!hasConnection) {
+    throw Exception('No network connection');
+  }
+
+  DateTime now = DateTime.now();
+
+  try {
+    List<Serie> serieList = await getSeries(idLeague);
+
+    if (serieList.isEmpty) return [];
+
+    // Filtra le serie ancora in corso
+    List<Serie> currentSeries = serieList.where((s) =>
+      s.beginAt!.isBefore(now) && s.endAt!.isAfter(now)
+    ).toList();
+
+    // Se non ci sono serie in corso, prendi l'ultima terminata
+    if (currentSeries.isEmpty) {
+      serieList.sort((a, b) => b.endAt!.compareTo(a.endAt!));
+      currentSeries.add(serieList.first);
+    }
+
+    List<Tournament> tournamentsToShow = [];
+
+    // Per ogni serie selezionata, prendi i tournament rilevanti
+    for (var serie in currentSeries) {
+      var activeTournaments = serie.tournaments.where((t) =>
+        t.beginAt!.isBefore(now) && t.endAt!.isAfter(now)
+      ).toList();
+
+      if (activeTournaments.isNotEmpty) {
+        tournamentsToShow.addAll(activeTournaments);
+      } else if (serie.tournaments.isNotEmpty) {
+        // prendi l'ultimo tournament terminato
+        serie.tournaments.sort((a, b) => b.endAt!.compareTo(a.endAt!));
+        tournamentsToShow.add(serie.tournaments.first);
+      }
+    }
+
+    // Ordina tutti i tournament per endAt decrescente
+    tournamentsToShow.sort((a, b) => b.endAt!.compareTo(a.endAt!));
+
+    return tournamentsToShow;
+
+  } catch (e) {
+    throw Exception('Unexpected error in fetching tournaments: $e');
+  }
+}
 
   // Method to fetch the current tournament from the Pandascore API
   Future<List<Match>> getMatches(String period, int idTournament) async {
@@ -316,32 +293,37 @@ class PandaService {
       throw (Exception('No network connection'));
     }
 
+    Options tempOpt;
+    if(period == 'past')
+    {
+      tempOpt = options.copyWith(policy: CachePolicy.forceCache).toOptions();
+    }
+    else{
+      tempOpt = options.toOptions();
+    }
+
     final url = Uri.parse(
       '${baseUrl}matches/$period?filter[tournament_id]=$idTournament',
     );
     try {
-      final response = await http
-          .get(
-            url,
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              'Authorization': 'Bearer $apiKey',
-            },
-          )
+      final response = await dio
+            .getUri(
+              url,
+              options: tempOpt,
+            )
           .timeout(const Duration(seconds: 20));
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        final data = response.data;
         return Match.fromJsonList(data);
       } else if (response.statusCode == 400 ||
           response.statusCode == 401 ||
           response.statusCode == 403 ||
           response.statusCode == 404 ||
           response.statusCode == 422) {
-        throw Exception('Error -> Response code ${response.body}');
+        throw Exception('Error -> Response code ${response.data}');
       } else {
-        throw Exception('Error -> Response code ${response.body}');
+        throw Exception('Error -> Response code ${response.data}');
       }
     } on TimeoutException catch (_) {
       throw TimeoutException('Tournament Request timed out');
