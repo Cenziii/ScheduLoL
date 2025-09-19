@@ -74,33 +74,53 @@ class _NotificationStateState extends State<NotificationState> {
                   ? Icons.notifications_active
                   : Icons.notification_add,
             ),
-            onPressed: notificationActivated
-                ? null
-                : () async {
-                    if (widget.match.scheduledAt != null) {
-                      await NotificationService().scheduleNotification(
-                        title: 'Match is starting',
-                        body: '${widget.team1} vs ${widget.team2}',
-                        datetime: widget.scheduleAt,
-                        matchId: widget.match.id!,
-                      );
+             onPressed: () async {
+    if (widget.match.scheduledAt == null) return;
 
-                      await SharedPreferencesService()
-                          .addNotificationsPastMatch(widget.match);
+    if (!notificationActivated) {
+      // Attiva la notifica
+      await NotificationService().scheduleNotification(
+        title: 'Match is starting',
+        body: '${widget.team1} vs ${widget.team2}',
+        datetime: widget.scheduleAt,
+        matchId: widget.match.id!,
+      );
 
-                      setState(() {});
+      await SharedPreferencesService().addNotificationsPastMatch(widget.match);
 
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            "Notification created for ${widget.team1} vs ${widget.team2} at "
-                            "${widget.scheduleAt.hour}:${widget.scheduleAt.minute.toString().padLeft(2, '0')}",
-                          ),
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
-                    }
-                  },
+      setState(() {
+        notificationActivated = true;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "Notification created for ${widget.team1} vs ${widget.team2} at "
+            "${widget.scheduleAt.hour}:${widget.scheduleAt.minute.toString().padLeft(2, '0')}",
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } else {
+      // Disattiva la notifica
+      await NotificationService().cancelNotification(widget.match.id!);
+
+      await SharedPreferencesService().removeNotificationsPastMatch(widget.match.id!);
+
+      setState(() {
+        notificationActivated = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "Notification removed for ${widget.team1} vs ${widget.team2}",
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  },
           );
         },
       );

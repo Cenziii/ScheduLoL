@@ -105,7 +105,19 @@ class NotificationService {
     }
   }
 
-  Future<void> cancelAllNotifications() async {
-    await notificationsPlugin.cancelAll();
+  Future<void> cancelNotification(int matchId) async {
+  final prefs = await SharedPreferences.getInstance();
+  List<String>? ids = prefs.getStringList('notify_ids') ?? [];
+
+  String matchIdStr = matchId.toString();
+  if (ids.contains(matchIdStr)) {
+    int? notificationId = int.tryParse(matchIdStr);
+    if (notificationId != null) {
+      await notificationsPlugin.cancel(notificationId);
+    }
+    ids.remove(matchIdStr);
+    await prefs.setStringList('notify_ids', ids);
   }
+}
+
 }

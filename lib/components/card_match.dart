@@ -132,7 +132,7 @@ class CardMatch extends StatelessWidget {
                 fit: BoxFit.cover,
                 placeholder: (context, url) =>
                     CircularProgressIndicator(color: theme.colorScheme.primary),
-                errorWidget: (context, url, error) => const Icon(Icons.group),
+                errorWidget: (context, url, error) => const Icon(Icons.group, color: Colors.black),
               ),
             ),
           ),
@@ -196,7 +196,7 @@ class CardMatch extends StatelessWidget {
                 fit: BoxFit.cover,
                 placeholder: (context, url) =>
                     CircularProgressIndicator(color: theme.colorScheme.primary),
-                errorWidget: (context, url, error) => const Icon(Icons.group),
+                errorWidget: (context, url, error) => const Icon(Icons.group, color: Colors.black),
               ),
             ),
           ),

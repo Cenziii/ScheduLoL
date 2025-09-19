@@ -47,17 +47,23 @@ class _HomePageState extends State<HomePage> with HomeController<HomePage> {
                     SizedBox(height: 5),
                     LeagueSelector(
                       leagues: getLeagues, // List of leagues
-                      selectedLeagueId: selectedLeagueId, // Currently selected league ID
+                      selectedLeagueId:
+                          selectedLeagueId, // Currently selected league ID
                       onReorder: onReorder, // Callback for reordering leagues
-                      onLeagueTap: (lg) => currentLeagueSchedule(lg), // Callback when a league is tapped
+                      onLeagueTap: (lg) => currentLeagueSchedule(
+                        lg,
+                      ), // Callback when a league is tapped
                     ),
                     const SizedBox(height: 2),
                     Expanded(
                       child: isLoadingSchedule
-                          ? const Center(child: CircularProgressIndicator()) // Loading indicator while fetching schedule
+                          ? const Center(
+                              child: CircularProgressIndicator(),
+                            ) // Loading indicator while fetching schedule
                           : MatchWeekView(
                               allMatches: getAllMatches, // List of all matches
-                              onRefresh: refreshLeagueSchedule, // Callback to refresh the league schedule
+                              onRefresh:
+                                  refreshLeagueSchedule, // Callback to refresh the league schedule
                             ),
                     ),
                   ],
@@ -69,41 +75,54 @@ class _HomePageState extends State<HomePage> with HomeController<HomePage> {
           }
         },
       );
-    } 
+    }
     // Handle error state
     else if (isError) {
-      return AlertDialog(
-        backgroundColor: theme.colorScheme.surface,
-        title: Text(
-          'Error',
-          style: theme.textTheme.titleLarge?.copyWith(
-            color: theme.colorScheme.onSurface,
+      return SafeArea(
+        child: Scaffold(
+          appBar: HomeHeader(
+            theme: theme,
+            updateAvailable: isUpdateAvailable,
+            apkUrl: apkUrl,
+            onDownloadPressed: launchURL,
           ),
-        ),
-        content: Text(
-          'An error occurred. Please try again.',
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => SystemChannels.platform.invokeMethod('SystemNavigator.pop'),
-            child: Text(
-              'OK',
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: theme.colorScheme.primary,
-              ),
+          body: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.error, size: 60, color: theme.colorScheme.error),
+                const SizedBox(height: 16),
+                Text(
+                  'An error occurred.\nPlease try again.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () => SystemChannels.platform.invokeMethod(
+                    'SystemNavigator.pop',
+                  ),
+                  child: Text(
+                    'Ok',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       );
-    } 
+    }
     // Handle loading state
     else {
       return Center(
         child: CachedNetworkImage(
-          imageUrl: "https://media.tenor.com/-O9a6WKx4uAAAAAi/league-of-legends-league-of-legends-alistar.gif",
+          imageUrl:
+              "https://media.tenor.com/-O9a6WKx4uAAAAAi/league-of-legends-league-of-legends-alistar.gif",
           width: 150,
           height: 150,
           placeholder: (context, url) => SizedBox(

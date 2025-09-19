@@ -53,4 +53,13 @@ class SharedPreferencesService{
       prefs.setStringList('notify_ids', ids);
     }
   }
+
+  Future<void> removeNotificationsPastMatch(int id) async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String>? ids = prefs.getStringList('notify_ids');
+    if (ids != null) {
+      ids.removeWhere((element) => element == id.toString());
+      prefs.setStringList('notify_ids', ids);
+    }
+  }
 }

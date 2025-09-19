@@ -16,10 +16,10 @@ class PandaService {
 
   // Singleton instance of the class
   static final PandaService _instance = PandaService._privateConstructor();
-  
+
   // API key for authentication with the Pandascore API
   final apiKey = dotenv.env['PANDA_API_KEY'];
-  
+
   // Base URL for the Pandascore API
   final baseUrl = 'https://api.pandascore.co/lol/';
 
@@ -36,7 +36,7 @@ class PandaService {
     policy: CachePolicy.request,
     // Returns a cached response on error for given status codes.
     // Defaults to `[]`.
-    hitCacheOnErrorCodes: const [400,401,403,404,422,500],
+    hitCacheOnErrorCodes: const [400, 401, 403, 404, 422, 500],
     // Allows to return a cached response on network errors (e.g. offline usage).
     // Defaults to `false`.
     hitCacheOnNetworkFailure: true,
@@ -55,7 +55,7 @@ class PandaService {
     allowPostMethod: false,
   );
 
-   late final Dio dio = Dio()
+  late final Dio dio = Dio()
     ..interceptors.add(DioCacheInterceptor(options: options))
     ..options.headers['Content-Type'] = 'application/json'
     ..options.headers['Accept'] = 'application/json'
@@ -125,7 +125,9 @@ class PandaService {
         final response = await dio
             .getUri(
               url,
-              options: options.copyWith(policy: CachePolicy.forceCache).toOptions(),
+              options: options
+                  .copyWith(policy: CachePolicy.forceCache)
+                  .toOptions(),
             )
             .timeout(const Duration(seconds: 20));
 
@@ -175,13 +177,15 @@ class PandaService {
         (league) => league.name == "LTA North",
       );
       List<League> new_ordered_leagues = [];
-      new_ordered_leagues.add(total_responses[lck_index]);
-      new_ordered_leagues.add(total_responses[lpl_index]);
-      new_ordered_leagues.add(total_responses[lec_index]);
-      new_ordered_leagues.add(total_responses[lta_index]);
+      if (lck_index != -1) new_ordered_leagues.add(total_responses[lck_index]);
+      if (lpl_index != -1) new_ordered_leagues.add(total_responses[lpl_index]);
+      if (lec_index != -1) new_ordered_leagues.add(total_responses[lec_index]);
+      if (lta_index != -1) new_ordered_leagues.add(total_responses[lta_index]);
       for (int i = 0; i < total_responses.length; i++) {
         if (total_responses[i].imageUrl != null) {
-          final urlThumb = total_responses[i].imageUrl!.split("/"); // Split URL to get the last part
+          final urlThumb = total_responses[i].imageUrl!.split(
+            "/",
+          ); // Split URL to get the last part
           var addThumb = "thumb_${urlThumb.last}"; // Create new thumbnail name
           total_responses[i].imageUrl = total_responses[i].imageUrl!.replaceAll(
             urlThumb.last,
@@ -203,88 +207,88 @@ class PandaService {
   }
 
   // Method to fetch all series for a league from the Pandascore API
-Future<List<Serie>> getSeries(int idLeague) async {
-  final hasConnection = await checkConnection();
-  if (!hasConnection) {
-    throw Exception('No network connection');
-  }
-
-  final url = Uri.parse('${baseUrl}series?filter[league_id]=$idLeague');
-
-  try {
-    final response = await dio.getUri(
-      url,
-      options: options.copyWith(policy: CachePolicy.refresh).toOptions(),
-    ).timeout(const Duration(seconds: 20));
-
-    if (response.statusCode == 200) {
-      final data = response.data;
-      return Serie.fromJsonList(data);
-    } else {
-      throw Exception('Error -> Response code ${response.data}');
+  Future<List<Serie>> getSeries(int idLeague) async {
+    final hasConnection = await checkConnection();
+    if (!hasConnection) {
+      throw Exception('No network connection');
     }
-  } on TimeoutException catch (_) {
-    throw TimeoutException('Series request timed out');
-  } on SocketException catch (e) {
-    throw SocketException('Network error while fetching series: $e');
-  } on FormatException catch (e) {
-    throw FormatException('Format exception error $e');
-  } catch (e) {
-    throw Exception('Unexpected error in series: $e');
+
+    final url = Uri.parse('${baseUrl}series?filter[league_id]=$idLeague');
+
+    try {
+      final response = await dio
+          .getUri(
+            url,
+            options: options.copyWith(policy: CachePolicy.refresh).toOptions(),
+          )
+          .timeout(const Duration(seconds: 20));
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        return Serie.fromJsonList(data);
+      } else {
+        throw Exception('Error -> Response code ${response.data}');
+      }
+    } on TimeoutException catch (_) {
+      throw TimeoutException('Series request timed out');
+    } on SocketException catch (e) {
+      throw SocketException('Network error while fetching series: $e');
+    } on FormatException catch (e) {
+      throw FormatException('Format exception error $e');
+    } catch (e) {
+      throw Exception('Unexpected error in series: $e');
+    }
   }
-}
 
   // Method to fetch the current or last relevant tournaments from the Pandascore API
-Future<List<Tournament>> getCurrentTournament(int idLeague) async {
-  final hasConnection = await checkConnection();
-  if (!hasConnection) {
-    throw Exception('No network connection');
-  }
-
-  DateTime now = DateTime.now();
-
-  try {
-    List<Serie> serieList = await getSeries(idLeague);
-
-    if (serieList.isEmpty) return [];
-
-    // Filtra le serie ancora in corso
-    List<Serie> currentSeries = serieList.where((s) =>
-      s.beginAt!.isBefore(now) && s.endAt!.isAfter(now)
-    ).toList();
-
-    // Se non ci sono serie in corso, prendi l'ultima terminata
-    if (currentSeries.isEmpty) {
-      serieList.sort((a, b) => b.endAt!.compareTo(a.endAt!));
-      currentSeries.add(serieList.first);
+  Future<List<Tournament>> getCurrentTournament(int idLeague) async {
+    final hasConnection = await checkConnection();
+    if (!hasConnection) {
+      throw Exception('No network connection');
     }
 
-    List<Tournament> tournamentsToShow = [];
+    DateTime now = DateTime.now();
 
-    // Per ogni serie selezionata, prendi i tournament rilevanti
-    for (var serie in currentSeries) {
-      var activeTournaments = serie.tournaments.where((t) =>
-        t.beginAt!.isBefore(now) && t.endAt!.isAfter(now)
-      ).toList();
+    try {
+      List<Serie> serieList = await getSeries(idLeague);
 
-      if (activeTournaments.isNotEmpty) {
-        tournamentsToShow.addAll(activeTournaments);
-      } else if (serie.tournaments.isNotEmpty) {
-        // prendi l'ultimo tournament terminato
-        serie.tournaments.sort((a, b) => b.endAt!.compareTo(a.endAt!));
-        tournamentsToShow.add(serie.tournaments.first);
+      if (serieList.isEmpty) return [];
+
+      // Filter currently series
+      List<Serie> currentSeries = serieList
+          .where((s) => s.beginAt!.isBefore(now) && s.endAt!.isAfter(now))
+          .toList();
+
+      // If currentSeries is empty, take last
+      if (currentSeries.isEmpty) {
+        serieList.sort((a, b) => b.endAt!.compareTo(a.endAt!));
+        currentSeries.add(serieList.first);
       }
+
+      List<Tournament> tournamentsToShow = [];
+
+      // For each series, take tournaments
+      for (var serie in currentSeries) {
+        var activeTournaments = serie.tournaments
+            .where((t) => t.beginAt!.isBefore(now) && t.endAt!.isAfter(now))
+            .toList();
+
+        if (activeTournaments.isNotEmpty) {
+          tournamentsToShow.addAll(activeTournaments);
+        } else if (serie.tournaments.isNotEmpty) {
+          // Take last tournaments
+          serie.tournaments.sort((a, b) => b.endAt!.compareTo(a.endAt!));
+          tournamentsToShow.add(serie.tournaments.first);
+        }
+      }
+
+      tournamentsToShow.sort((a, b) => b.endAt!.compareTo(a.endAt!));
+
+      return tournamentsToShow;
+    } catch (e) {
+      throw Exception('Unexpected error in fetching tournaments: $e');
     }
-
-    // Ordina tutti i tournament per endAt decrescente
-    tournamentsToShow.sort((a, b) => b.endAt!.compareTo(a.endAt!));
-
-    return tournamentsToShow;
-
-  } catch (e) {
-    throw Exception('Unexpected error in fetching tournaments: $e');
   }
-}
 
   // Method to fetch the current tournament from the Pandascore API
   Future<List<Match>> getMatches(String period, int idTournament) async {
@@ -294,11 +298,9 @@ Future<List<Tournament>> getCurrentTournament(int idLeague) async {
     }
 
     Options tempOpt;
-    if(period == 'past')
-    {
+    if (period == 'past') {
       tempOpt = options.copyWith(policy: CachePolicy.forceCache).toOptions();
-    }
-    else{
+    } else {
       tempOpt = options.toOptions();
     }
 
@@ -307,10 +309,7 @@ Future<List<Tournament>> getCurrentTournament(int idLeague) async {
     );
     try {
       final response = await dio
-            .getUri(
-              url,
-              options: tempOpt,
-            )
+          .getUri(url, options: tempOpt)
           .timeout(const Duration(seconds: 20));
 
       if (response.statusCode == 200) {
