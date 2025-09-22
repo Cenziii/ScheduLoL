@@ -248,6 +248,7 @@ class PandaService {
     }
 
     DateTime now = DateTime.now();
+    DateTime tenDaysBefore = DateTime.now().add(Duration(days: -7));
 
     try {
       List<Serie> serieList = await getSeries(idLeague);
@@ -256,7 +257,7 @@ class PandaService {
 
       // Filter currently series
       List<Serie> currentSeries = serieList
-          .where((s) => s.beginAt!.isBefore(now) && s.endAt!.isAfter(now))
+          .where((s) => s.endAt!.isAfter(now))
           .toList();
 
       // If currentSeries is empty, take last
@@ -270,7 +271,11 @@ class PandaService {
       // For each series, take tournaments
       for (var serie in currentSeries) {
         var activeTournaments = serie.tournaments
-            .where((t) => t.beginAt!.isBefore(now) && t.endAt!.isAfter(now))
+            .where(
+              (t) =>
+                  t.endAt!.isAfter(tenDaysBefore) &&
+                  t.beginAt!.isBefore(serie.endAt!),
+            )
             .toList();
 
         if (activeTournaments.isNotEmpty) {
